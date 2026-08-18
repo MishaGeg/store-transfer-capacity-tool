@@ -14,4 +14,3 @@ def update_stock_data(store_id, brand, category, quantity):
             snapshot_date=datetime.now()
  )
         db.session.add(new_stock_snapshot)
-    db.session.commit()
