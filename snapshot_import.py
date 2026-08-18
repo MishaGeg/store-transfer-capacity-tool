@@ -14,3 +14,12 @@ def update_stock_data(store_id, brand, category, quantity):
             snapshot_date=datetime.now()
  )
         db.session.add(new_stock_snapshot)
+
+def write_stock_data(totals):
+    for k, v in totals.items():
+        store_id = k[0]
+        brand = k[1]
+        category = k[2]
+        quantity = v
+        update_stock_data(store_id, brand, category, quantity)
+    db.session.commit()        
