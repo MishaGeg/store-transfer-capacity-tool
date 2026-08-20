@@ -21,6 +21,7 @@ class StockSnapshot(db.Model):
     quantity = db.Column(db.Integer, nullable=False)
     brand = db.Column(db.String(50), nullable=False)
     snapshot_date = db.Column(db.DateTime, nullable=False)
+
     store_id = db.Column(db.Integer, db.ForeignKey("stores.id"), nullable=False)
 
 
@@ -30,3 +31,19 @@ class StockSnapshot(db.Model):
             name="unique_stock_snapshot_store_brand_category"
         ),
     )
+
+class BrandCapacity(db.Model):
+    __tablename__ = "capacities"
+
+    id = db.Column(db.Integer, primary_key=True)
+    brand = db.Column(db.String(50), nullable=False)
+    capacity = db.Column(db.Integer, nullable=False)
+
+    store_id = db.Column(db.Integer, db.ForeignKey("stores.id"), nullable=False)
+
+    __table_args__ = (
+            db.UniqueConstraint(
+                "store_id", "brand",
+                name="unique_brand_capacity_store_id_brand"
+            ),
+        )       
