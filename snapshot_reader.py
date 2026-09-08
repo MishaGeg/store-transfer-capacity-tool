@@ -22,16 +22,16 @@ def validate_stock_data(sheet, store_lookup):
     for row_num, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
         category = row[CAT_1_COL]
         brand = row[BRAND_1_COL]
-        st_value = row[ST_COL]
+        st_name = row[ST_COL]
         quantity = row[QTY_COL]
         if category is None or str(category).strip().upper() not in {"FOOTWEAR", "SLIPPERS"}:
             continue
         if quantity is None or str(quantity).strip() == "":
             skipped.append({"row": row_num, "reason": "empty quantity"})
             continue
-        store_id = store_lookup.get(str(st_value).strip() if st_value else None)
+        store_id = store_lookup.get(str(st_name).strip() if st_name else None)
         if store_id is None:
-            skipped.append({"row": row_num, "reason": f"unknown ST value: {st_value}"})
+            skipped.append({"row": row_num, "reason": f"unknown ST value: {st_name}"})
             continue
         if brand is None or str(brand).strip() == "":
             skipped.append({"row": row_num, "reason": "empty brand"})

@@ -1,7 +1,7 @@
 from flask import Flask, request, render_template, redirect, flash, url_for, session
 from dotenv import load_dotenv
 import os
-from models import db, Store, BrandCapacity
+from models import db, Store, BrandCapacity, PlannedTransfer
 from flask_migrate import Migrate
 from snapshot_import import  write_stock_data
 from flask import request, jsonify
@@ -36,28 +36,13 @@ def import_stock():
 
 @app.route("/capacities", methods=["GET"])
 def show_capacities():
-    result = db.session.query(
-        BrandCapacity, Store
-    ).join(
-        Store, BrandCapacity.store_id == Store.id
-    ).all()
-
+    result = db.session.query(BrandCapacity, Store).join(Store, BrandCapacity.store_id == Store.id).all()
     results = {}
-
     for capacity, store in result:
         store_name = store.name
-
         if store_name not in results:
-            results[store_name] = {
-                "store_id": store.id,
-                "brands": []
-            }
-
-        results[store_name]["brands"].append({
-            "brand": capacity.brand,
-            "capacity": capacity.capacity
-        })
-
+            results[store_name] = {"store_id": store.id,"brands": []}
+        results[store_name]["brands"].append({"brand": capacity.brand,"capacity": capacity.capacity})
     return jsonify(results)          
 
 @app.route("/capacities/<int:store_id>/<brand>", methods =["PUT"])
@@ -74,6 +59,24 @@ def update_capacities(store_id, brand):
     db.session.commit()
     return jsonify({"brand": result.brand, "capacity": result.capacity}), 200
 
+@app.route("/transfers", methods =["POST"])
+def create_transfers():
+    data = request.get_json()
+    transfers = data.get("transfers")
+    if not isinstance(transfers, list):
+        return jsonify({"error": "transfers must be a list"}), 400
+    for transfer in transfers:
+        try:
+            brand = transfer["brand"]
+            from_store_id = transfer["from_store_id"]
+            to_store_id = transfer["to_store_id"]
+            quantity = transfer["quantity"]
+        except(KeyError):
+            return jsonify({"error": f"incorrect{transfer}data"})    
+
+
+
+    
 
 if __name__ == "__main__":
     app.run(debug=True)
