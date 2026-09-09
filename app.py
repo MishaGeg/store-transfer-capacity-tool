@@ -7,6 +7,7 @@ from snapshot_import import  write_stock_data
 from flask import request, jsonify
 from snapshot_reader import read_stock_data, validate_stock_data
 from flask_cors import CORS
+from datetime import datetime
 load_dotenv()
 
 app = Flask(__name__)
@@ -62,17 +63,30 @@ def update_capacities(store_id, brand):
 @app.route("/transfers", methods =["POST"])
 def create_transfers():
     data = request.get_json()
-    transfers = data.get("transfers")
-    if not isinstance(transfers, list):
+    transfer_list = data.get("transfers")
+    if not isinstance(transfer_list, list):
         return jsonify({"error": "transfers must be a list"}), 400
-    for transfer in transfers:
-        try:
-            brand = transfer["brand"]
-            from_store_id = transfer["from_store_id"]
-            to_store_id = transfer["to_store_id"]
-            quantity = transfer["quantity"]
-        except(KeyError):
-            return jsonify({"error": f"incorrect{transfer}data"})    
+    errors = []
+    successful_transfers = []
+    for row_num, t in enumerate(transfer_list):
+        if t["quantity"] <= 0 or t["from_store_id"] == t["to_store_id"]:
+            errors.append({"index": row_num, "error": "quantity must be > 0 or from/to stores must differ"})
+            continue
+        else:
+            new_transfer = PlannedTransfer(
+                brand = t["brand"],
+                quantity = t["quantity"], 
+                submitted_at = datetime.now(), 
+                from_store_id = t["from_store_id"], 
+                to_store_id = t["to_store_id"]
+            )
+            successful_transfers.append(new_transfer)
+    if errors:
+        return jsonify({"errors": errors}), 400        
+    for t in successful_transfers:    
+        db.session.add(t)
+    db.session.commit()
+    return jsonify({"created": len(successful_transfers)}), 201
 
 
 
