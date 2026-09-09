@@ -1,11 +1,9 @@
-from flask import Flask, request, render_template, redirect, flash, url_for, session
+from flask import Flask, request, render_template, jsonify
 from dotenv import load_dotenv
 import os
 from models import db, Store, BrandCapacity, PlannedTransfer
 from flask_migrate import Migrate
-from snapshot_import import  write_stock_data
-from flask import request, jsonify
-from snapshot_reader import read_stock_data, validate_stock_data
+from stock_snapshot_import import  write_stock_data, read_stock_data, validate_stock_data
 from flask_cors import CORS
 from datetime import datetime
 load_dotenv()
@@ -89,8 +87,6 @@ def create_transfers():
     return jsonify({"created": len(successful_transfers)}), 201
 
 
-
-    
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -1,0 +1,31 @@
+from flask import request, jsonify
+from models import PlannedTransfer, db
+from datetime import datetime
+
+def create_transfers():
+    data = request.get_json()
+    transfer_list = data.get("transfers")
+    if not isinstance(transfer_list, list):
+        return jsonify({"error": "transfers must be a list"}), 400
+    errors = []
+    successful_transfers = []
+    for row_num, t in enumerate(transfer_list):
+        if t["quantity"] <= 0 or t["from_store_id"] == t["to_store_id"]:
+            errors.append({"index": row_num, "error": "quantity must be > 0 or from/to stores must differ"})
+            continue
+        else:
+            new_transfer = PlannedTransfer(
+                brand = t["brand"],
+                quantity = t["quantity"], 
+                submitted_at = datetime.now(), 
+                from_store_id = t["from_store_id"], 
+                to_store_id = t["to_store_id"]
+            )
+            successful_transfers.append(new_transfer)
+    if errors:
+        return jsonify({"errors": errors}), 400        
+    for t in successful_transfers:    
+        db.session.add(t)
+    db.session.commit()
+    return jsonify({"created": len(successful_transfers)}), 201
+
