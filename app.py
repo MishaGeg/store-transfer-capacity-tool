@@ -1,16 +1,22 @@
-from flask import Flask, request, render_template, jsonify
+from flask import Flask
 from dotenv import load_dotenv
 import os
-from models import db, Store, BrandCapacity, PlannedTransfer
+from models import db
 from flask_migrate import Migrate
-from stock_snapshot_import import  write_stock_data, read_stock_data, validate_stock_data
 from flask_cors import CORS
-from datetime import datetime
+from transfers import transfers_bp
+from store_capacities import capacities_bp
+from stock_snapshot_import import snapshot_import_bp
 load_dotenv()
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY")
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+
+app.register_blueprint(transfers_bp)
+app.register_blueprint(capacities_bp)
+app.register_blueprint(snapshot_import_bp)
+
 CORS(app)
 
 db.init_app(app)
@@ -19,73 +25,6 @@ migrate = Migrate(app, db)
 @app.route("/")
 def home():
     return "HI"
-
-@app.route("/import-stock", methods=["GET", "POST"])
-def import_stock():
-    if request.method == "POST":
-        file = request.files.get("file")
-        try:
-            sheet, store_lookup = read_stock_data(file)
-        except ValueError as e:
-            return jsonify({"error": str(e)}), 400
-        processed, skipped, totals = validate_stock_data(sheet, store_lookup)
-        write_stock_data(totals)
-        return jsonify({"processed": processed, "skipped": skipped})
-    return render_template("import.html")
-
-@app.route("/capacities", methods=["GET"])
-def show_capacities():
-    result = db.session.query(BrandCapacity, Store).join(Store, BrandCapacity.store_id == Store.id).all()
-    results = {}
-    for capacity, store in result:
-        store_name = store.name
-        if store_name not in results:
-            results[store_name] = {"store_id": store.id,"brands": []}
-        results[store_name]["brands"].append({"brand": capacity.brand,"capacity": capacity.capacity})
-    return jsonify(results)          
-
-@app.route("/capacities/<int:store_id>/<brand>", methods =["PUT"])
-def update_capacities(store_id, brand):
-    result = BrandCapacity.query.filter_by(store_id = store_id, brand = brand).first()
-    if not result:
-        return jsonify({"error": "wrong store/brand name"}), 404
-    data = request.get_json()
-    try:
-        new_capacity = int(data["capacity"])
-    except(TypeError, ValueError):
-        return jsonify({"error": "incorrect data"}), 400  
-    result.capacity = new_capacity
-    db.session.commit()
-    return jsonify({"brand": result.brand, "capacity": result.capacity}), 200
-
-@app.route("/transfers", methods =["POST"])
-def create_transfers():
-    data = request.get_json()
-    transfer_list = data.get("transfers")
-    if not isinstance(transfer_list, list):
-        return jsonify({"error": "transfers must be a list"}), 400
-    errors = []
-    successful_transfers = []
-    for row_num, t in enumerate(transfer_list):
-        if t["quantity"] <= 0 or t["from_store_id"] == t["to_store_id"]:
-            errors.append({"index": row_num, "error": "quantity must be > 0 or from/to stores must differ"})
-            continue
-        else:
-            new_transfer = PlannedTransfer(
-                brand = t["brand"],
-                quantity = t["quantity"], 
-                submitted_at = datetime.now(), 
-                from_store_id = t["from_store_id"], 
-                to_store_id = t["to_store_id"]
-            )
-            successful_transfers.append(new_transfer)
-    if errors:
-        return jsonify({"errors": errors}), 400        
-    for t in successful_transfers:    
-        db.session.add(t)
-    db.session.commit()
-    return jsonify({"created": len(successful_transfers)}), 201
-
 
 
 if __name__ == "__main__":

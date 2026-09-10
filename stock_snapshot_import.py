@@ -2,11 +2,29 @@ from models import StockSnapshot, db
 from datetime import datetime
 from openpyxl import load_workbook
 from models import  Store
+from flask import Blueprint, request, render_template, jsonify
+
 
 CAT_1_COL = 0
 BRAND_1_COL = 3
 ST_COL = 4
 QTY_COL = 5
+
+snapshot_import_bp = Blueprint("snapshot", __name__)
+
+@snapshot_import_bp.route("/import-stock", methods=["GET", "POST"])
+def import_stock():
+    if request.method == "POST":
+        file = request.files.get("file")
+        try:
+            sheet, store_lookup = read_stock_data(file)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        processed, skipped, totals = validate_stock_data(sheet, store_lookup)
+        write_stock_data(totals)
+        return jsonify({"processed": processed, "skipped": skipped})
+    return render_template("import.html")
+
 
 def read_stock_data(file):
     if not file or not file.filename.endswith(".xlsx"):

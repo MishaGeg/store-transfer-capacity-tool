@@ -1,7 +1,10 @@
-from flask import request, jsonify
+from flask import Blueprint, request, jsonify
 from models import PlannedTransfer, db
 from datetime import datetime
 
+transfers_bp = Blueprint("transfers", __name__)
+
+@transfers_bp.route("/transfers", methods=["POST"])
 def create_transfers():
     data = request.get_json()
     transfer_list = data.get("transfers")
@@ -29,3 +32,11 @@ def create_transfers():
     db.session.commit()
     return jsonify({"created": len(successful_transfers)}), 201
 
+@transfers_bp.route("/transfers/<int:id>", methods=["DELETE"])
+def delete_transfer(id):
+    result = PlannedTransfer.query.filter_by(id = id).first()
+    if not result:
+        return jsonify({"error": "wrong transfer id"}), 404
+    db.session.delete(result)
+    db.session.commit()
+    return jsonify({"deleted_id": id, "status": "success"}), 200
