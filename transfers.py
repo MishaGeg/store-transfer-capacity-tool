@@ -30,7 +30,18 @@ def create_transfers():
     for t in successful_transfers:    
         db.session.add(t)
     db.session.commit()
-    return jsonify({"created": len(successful_transfers)}), 201
+    return jsonify([
+            {
+                "id": s.id,
+                "brand": s.brand, 
+                "quantity": s.quantity,
+                "submitted_at": s.submitted_at,
+                "from_store_id": s.from_store_id,
+                "to_store_id": s.to_store_id 
+            } 
+            for s in successful_transfers
+        ]), 201
+
 
 @transfers_bp.route("/transfers/<int:id>", methods=["DELETE"])
 def delete_transfer(id):
@@ -40,3 +51,19 @@ def delete_transfer(id):
     db.session.delete(result)
     db.session.commit()
     return jsonify({"deleted_id": id, "status": "success"}), 200
+
+@transfers_bp.route("/transfers", methods = ["GET"])
+def show_transfers():
+    transfers = [
+        {
+            "id": s.id,
+            "brand": s.brand, 
+            "quantity": s.quantity,
+            "submitted_at": s.submitted_at,
+            "from_store_id": s.from_store_id,
+            "to_store_id": s.to_store_id 
+        } 
+        for s in PlannedTransfer.query.all()
+    ]
+    return jsonify(transfers)
+

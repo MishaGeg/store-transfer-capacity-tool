@@ -7,20 +7,23 @@ from flask_cors import CORS
 from transfers import transfers_bp
 from store_capacities import capacities_bp
 from stock_snapshot_import import snapshot_import_bp
+from stores import stores_bp
 load_dotenv()
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY")
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+db.init_app(app)
+migrate = Migrate(app, db)
+CORS(app)
 
 app.register_blueprint(transfers_bp)
 app.register_blueprint(capacities_bp)
 app.register_blueprint(snapshot_import_bp)
+app.register_blueprint(stores_bp)
 
-CORS(app)
 
-db.init_app(app)
-migrate = Migrate(app, db)
+
 
 @app.route("/")
 def home():

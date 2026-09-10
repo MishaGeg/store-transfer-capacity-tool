@@ -25,7 +25,6 @@ def import_stock():
         return jsonify({"processed": processed, "skipped": skipped})
     return render_template("import.html")
 
-
 def read_stock_data(file):
     if not file or not file.filename.endswith(".xlsx"):
         raise ValueError("Please upload a .xlsx file")
