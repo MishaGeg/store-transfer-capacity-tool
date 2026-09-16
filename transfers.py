@@ -24,23 +24,31 @@ def create_transfers():
                 from_store_id = t["from_store_id"], 
                 to_store_id = t["to_store_id"]
             )
-            successful_transfers.append(new_transfer)
-    if errors:
-        return jsonify({"errors": errors}), 400        
+            successful_transfers.append(new_transfer)      
     for t in successful_transfers:    
         db.session.add(t)
     db.session.commit()
-    return jsonify([
+    if successful_transfers and errors:
+        status_code = 207 
+    elif successful_transfers:
+        status_code = 201  
+    else:
+        status_code = 400 
+    return jsonify({
+        "errors": errors,
+        "created": [
             {
                 "id": s.id,
-                "brand": s.brand, 
+                "brand": s.brand,
                 "quantity": s.quantity,
                 "submitted_at": s.submitted_at,
                 "from_store_id": s.from_store_id,
-                "to_store_id": s.to_store_id 
-            } 
+                "to_store_id": s.to_store_id
+            }
             for s in successful_transfers
-        ]), 201
+        ]
+    }), status_code
+
 
 
 @transfers_bp.route("/transfers/<int:id>", methods=["DELETE"])

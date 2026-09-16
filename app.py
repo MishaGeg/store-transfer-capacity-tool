@@ -1,11 +1,11 @@
-from flask import Flask
+from flask import Flask, render_template
 from dotenv import load_dotenv
 import os
 from models import db
 from flask_migrate import Migrate
 from flask_cors import CORS
 from transfers import transfers_bp
-from store_capacities import capacities_bp
+from capacities import capacities_bp
 from stock_snapshot_import import snapshot_import_bp
 from stores import stores_bp
 load_dotenv()
@@ -23,11 +23,13 @@ app.register_blueprint(snapshot_import_bp)
 app.register_blueprint(stores_bp)
 
 
-
-
 @app.route("/")
 def home():
     return "HI"
+
+@app.route("/transfers-page")
+def transfers_page():
+    return render_template("transfers.html")
 
 
 if __name__ == "__main__":

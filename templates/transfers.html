@@ -1,0 +1,3276 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Transfers</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-sans,
+                    -apple-system,
+                    BlinkMacSystemFont,
+                    "Segoe UI",
+                    sans-serif);
+            color: var(--text-primary, #172033);
+            background: transparent;
+            line-height: 1.45;
+        }
+
+        button,
+        input,
+        select {
+            font: inherit;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        button:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .container {
+            width: 100%;
+            padding: 1.25rem 0 2rem;
+        }
+
+        /* =========================================================
+           PAGE HEADER
+           ========================================================= */
+
+        h2 {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+
+            margin-bottom: 1rem;
+
+            color: var(--text-primary, #172033);
+
+            font-size: clamp(1.25rem, 2vw, 1.5rem);
+            font-weight: 650;
+            letter-spacing: -0.025em;
+        }
+
+        h2::before {
+            content: "";
+
+            width: 0.45rem;
+            height: 1.75rem;
+
+            flex: 0 0 auto;
+
+            border-radius: 99px;
+
+            background: var(--fill-accent, #2563eb);
+        }
+
+        /* =========================================================
+           CARDS
+           ========================================================= */
+
+        .toolbar-card,
+        .order-card,
+        .matrix-card {
+            background: var(--surface-2, #ffffff);
+
+            border: 1px solid var(--border, #e5e7eb);
+            border-radius: 16px;
+
+            box-shadow:
+                0 2px 5px rgba(15, 23, 42, 0.03);
+        }
+
+        .toolbar-card {
+            padding: 0.85rem 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .order-card {
+            padding: 0.85rem 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .matrix-card {
+            overflow: hidden;
+        }
+
+        /* =========================================================
+           TOOLBAR
+           ========================================================= */
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+
+            flex-wrap: wrap;
+        }
+
+        .toolbar-left,
+        .toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+
+            flex-wrap: wrap;
+        }
+
+        .toolbar-right {
+            margin-left: auto;
+        }
+
+        .toolbar-label,
+        .section-label {
+            color: var(--text-secondary, #64748b);
+
+            font-size: 0.67rem;
+            font-weight: 700;
+
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .brand-select {
+            min-width: 150px;
+
+            padding: 0.42rem 0.6rem;
+
+            border: 1px solid var(--border, #e5e7eb);
+            border-radius: var(--radius, 8px);
+
+            background: var(--surface-1, #f8fafc);
+            color: var(--text-primary, #172033);
+
+            font-size: 12px;
+        }
+
+        .brand-select:focus,
+        .quantity-input:focus {
+            outline: none;
+
+            border-color:
+                var(--border-strong, #cbd5e1);
+
+            box-shadow:
+                0 0 0 2px color-mix(in srgb,
+                    var(--fill-accent, #2563eb) 8%,
+                    transparent);
+        }
+
+        /* =========================================================
+           BUTTONS
+           ========================================================= */
+
+        .action-btn {
+            padding: 0.42rem 0.7rem;
+
+            border: 1px solid var(--border-strong, #cbd5e1);
+
+            border-radius: var(--radius, 8px);
+
+            background: transparent;
+            color: var(--text-primary, #172033);
+
+            font-size: 11px;
+            font-weight: 600;
+
+            transition:
+                background 0.15s ease,
+                border-color 0.15s ease,
+                transform 0.1s ease;
+        }
+
+        .action-btn:hover:not(:disabled) {
+            background: var(--surface-1, #f8fafc);
+        }
+
+        .action-btn:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+
+        .action-btn.primary {
+            background: var(--fill-accent, #2563eb);
+            border-color: var(--fill-accent, #2563eb);
+            color: var(--on-accent, #ffffff);
+        }
+
+        .action-btn.primary:hover:not(:disabled) {
+            background: var(--fill-accent-hover, #2563eb);
+            border-color: var(--fill-accent-hover, #2563eb);
+        }
+
+        /* =========================================================
+           STATUS
+           ========================================================= */
+
+        .status {
+            min-height: 18px;
+
+            margin: 0 0 0.5rem;
+
+            font-size: 12px;
+        }
+
+        .status.error {
+            color: var(--text-danger, #b42318);
+        }
+
+        .status.success {
+            color: var(--text-success, #067647);
+        }
+
+        .status.info {
+            color: var(--text-secondary, #64748b);
+        }
+
+        /* =========================================================
+           SUBMIT ERRORS LIST
+           ========================================================= */
+
+        .submit-errors {
+            margin: 0 0 0.75rem;
+            padding: 0.6rem 0.75rem;
+
+            border: 1px solid color-mix(in srgb,
+                    var(--text-danger, #b42318) 30%,
+                    var(--border, #e5e7eb));
+            border-radius: 10px;
+
+            background: color-mix(in srgb,
+                    var(--text-danger, #b42318) 5%,
+                    white);
+        }
+
+        .submit-errors-title {
+            margin-bottom: 0.3rem;
+
+            color: var(--text-danger, #b42318);
+
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .submit-errors-list {
+            list-style: none;
+
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+
+        .submit-errors-list li {
+            color: var(--text-danger, #b42318);
+
+            font-size: 11px;
+        }
+
+        /* =========================================================
+           STORE ORDER
+           ========================================================= */
+
+        .order-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            gap: 0.90rem;
+
+            padding-bottom: 0.65rem;
+            margin-bottom: 0.65rem;
+
+            border-bottom: 1px solid var(--border, #e5e7eb);
+        }
+
+        .order-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+        }
+
+        .order-item {
+            display: flex;
+            align-items: center;
+
+            gap: 0.2rem;
+
+            padding:
+                0.28rem 0.35rem 0.28rem 0.5rem;
+
+            border: 1px solid transparent;
+            border-radius: var(--radius, 8px);
+
+            background: var(--surface-1, #f8fafc);
+        }
+
+        .order-item:hover {
+            border-color: var(--border, #e5e7eb);
+        }
+
+        .order-number {
+            margin-right: 0.15rem;
+
+            color: var(--text-secondary, #64748b);
+
+            font-size: 9px;
+            font-weight: 700;
+        }
+
+        .order-name {
+            max-width: 175px;
+
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+
+            color: var(--text-primary, #172033);
+
+            font-size: 9px;
+            font-weight: 600;
+        }
+
+        .move-btn {
+            width: 21px;
+            height: 21px;
+
+            padding: 0;
+
+            border: 1px solid var(--border-strong, #cbd5e1);
+
+            border-radius: 6px;
+
+            background: transparent;
+            color: var(--text-primary, #172033);
+
+            font-size: 10px;
+            line-height: 19px;
+        }
+
+        .move-btn:hover:not(:disabled) {
+            background: var(--fill-accent, #2563eb);
+            border-color: var(--fill-accent, #2563eb);
+            color: var(--on-accent, #ffffff);
+        }
+
+        .reset-btn {
+            padding: 0.32rem 0.55rem;
+            font-size: 10px;
+        }
+
+        /* =========================================================
+           TRANSFER TABLE
+           ========================================================= */
+
+        .table-scroll {
+            width: 100%;
+            overflow-x: hidden;
+        }
+
+        table {
+
+            width: 100%;
+
+            table-layout: fixed;
+
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            border-right: 1px solid var(--border, #e5e7eb);
+
+            border-bottom: 1px solid var(--border, #e5e7eb);
+        }
+
+        th:last-child,
+        td:last-child {
+            border-right: 0;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: 0;
+        }
+
+        /* ---------------------------------------------------------
+           COLUMN SIZES
+
+           Store count is now variable (capacity-filtered), so
+           columns size themselves; only the fixed edge columns
+           get an explicit width.
+           --------------------------------------------------------- */
+
+        .corner-head,
+        .row-name-cell {
+            width: 86px;
+        }
+
+        .actions-head,
+        .actions-cell {
+            width: 86px;
+        }
+
+        .store-head {
+            width: auto;
+        }
+
+        /* =========================================================
+           TABLE HEADER
+           ========================================================= */
+
+        th {
+            height: 60px;
+
+            padding: 0.42rem 0.16rem;
+
+            vertical-align: middle;
+
+            background: var(--surface-1,
+                    #f8fafc);
+        }
+
+        .corner-head {
+            padding-left: 0.5rem;
+
+            color: var(--text-secondary, #64748b);
+
+            font-size: 0.9rem;
+            font-weight: 700;
+
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+
+            text-align: left;
+        }
+
+        .store-label {
+            color: var(--text-primary, #172033);
+
+            font-size: 0.9rem;
+            line-height: 1.5;
+
+            font-weight: 650;
+
+            overflow-wrap: anywhere;
+            word-break: keep-all;
+        }
+
+        /* =========================================================
+           CAPACITY BADGE
+           ========================================================= */
+
+        .capacity-value {
+            display: inline-block;
+
+            max-width: 100%;
+
+            margin-top: 0.25rem;
+            padding: 0.2rem 0.28rem;
+
+            border-radius: 99px;
+
+            background: color-mix(in srgb,
+                    var(--fill-accent, #2563eb) 10%,
+                    transparent);
+
+            color: var(--fill-accent, #2563eb);
+
+            font-size: 0.8rem;
+            font-weight: 700;
+            line-height: 1.1;
+
+            overflow-wrap: anywhere;
+        }
+
+        .capacity-value.negative {
+            background: color-mix(in srgb,
+                    var(--text-danger, #b42318) 10%,
+                    transparent);
+
+            color: var(--text-danger, #b42318);
+        }
+
+        .capacity-value.missing {
+            background: var(--surface-1, #f8fafc);
+            color: var(--text-secondary, #64748b);
+        }
+
+        /* =========================================================
+           TABLE BODY
+           ========================================================= */
+
+        td {
+            height: 44px;
+
+            padding: 0.2rem 0.15rem;
+
+            background: var(--surface-2, #ffffff);
+
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .row-name-cell {
+            padding-left: 0.45rem;
+
+            background: var(--surface-1,
+                    #f8fafc);
+
+            text-align: left;
+        }
+
+        /* =========================================================
+           QUANTITY INPUT
+           ========================================================= */
+
+        .quantity-input {
+            width: 50px;
+            height: 28px;
+
+            padding: 0.18rem;
+
+            border: 1px solid var(--border, #e5e7eb);
+
+            border-radius: 7px;
+
+            background: var(--surface-1,
+                    #f8fafc);
+
+            color: var(--text-primary, #172033);
+
+            text-align: center;
+
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .quantity-input::placeholder {
+            color: #94a3b8;
+        }
+
+        .quantity-input.invalid {
+            border-color:
+                var(--text-danger, #b42318);
+
+            background: color-mix(in srgb,
+                    var(--text-danger, #b42318) 5%,
+                    white);
+        }
+
+        /* Active server transfer */
+
+        .quantity-input.locked {
+            background: color-mix(in srgb,
+                    var(--fill-accent, #2563eb) 7%,
+                    var(--surface-1, #f8fafc));
+
+            border-color: color-mix(in srgb,
+                    var(--fill-accent, #2563eb) 25%,
+                    var(--border, #e5e7eb));
+        }
+
+        .cell-content {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+
+            gap: 3px;
+
+            max-width: 100%;
+        }
+
+        /* =========================================================
+           DIAGONAL
+           ========================================================= */
+
+        .diagonal {
+            background: var(--surface-1,
+                    #f8fafc);
+
+            color: #a0a8b4;
+
+            font-size: 12px;
+        }
+
+        /* =========================================================
+           DELETE ACTIVE TRANSFER
+           ========================================================= */
+
+        .delete-btn {
+            width: 18px;
+            height: 18px;
+
+            padding: 0;
+
+            border: 0;
+            border-radius: 99px;
+
+            background: transparent;
+
+            color: var(--text-secondary, #64748b);
+
+            font-size: 14px;
+            line-height: 18px;
+        }
+
+        .delete-btn:hover {
+            background: color-mix(in srgb,
+                    var(--text-danger, #b42318) 8%,
+                    transparent);
+
+            color: var(--text-danger, #b42318);
+        }
+
+        /* =========================================================
+           VALIDATION
+           ========================================================= */
+
+        .cell-error {
+            display: block;
+
+            margin-top: 2px;
+
+            color: var(--text-danger, #b42318);
+
+            font-size: 7px;
+            line-height: 1;
+        }
+
+        /* =========================================================
+           ROW DELETE
+           ========================================================= */
+
+        .row-action-btn {
+            width: 80px;
+            min-height: 26px;
+
+            padding: 0.22rem;
+
+            border: 1px solid var(--border-strong, #cbd5e1);
+
+            border-radius: 7px;
+
+            background: transparent;
+            color: var(--text-primary, #172033);
+
+            font-size: 13px;
+            font-weight: 600;
+            line-height: 1.05;
+        }
+
+        .row-action-btn:hover:not(:disabled) {
+            background: color-mix(in srgb,
+                    var(--text-danger, #b42318) 6%,
+                    transparent);
+
+            border-color: color-mix(in srgb,
+                    var(--text-danger, #b42318) 40%,
+                    var(--border-strong, #cbd5e1));
+
+            color: var(--text-danger, #b42318);
+        }
+
+        .row-count {
+            display: block;
+
+            margin-top: 2px;
+
+            color: var(--text-secondary, #64748b);
+
+            font-size: 7px;
+        }
+
+        /* =========================================================
+           EMPTY / LOADING
+           ========================================================= */
+
+        .empty-state,
+        .loading {
+            padding: 2rem;
+
+            color: var(--text-secondary, #64748b);
+
+            font-size: 14px;
+
+            text-align: center;
+        }
+
+        /* =========================================================
+           RESPONSIVE
+           ========================================================= */
+
+        @media (max-width: 1000px) {
+
+            .corner-head,
+            .row-name-cell {
+                width: 72px;
+            }
+
+            .actions-head,
+            .actions-cell {
+                width: 48px;
+            }
+
+            .quantity-input {
+                width: 31px;
+            }
+
+            .store-label {
+                font-size: 0.90rem;
+            }
+
+            .capacity-value {
+                font-size: 0.80rem;
+            }
+        }
+
+        @media (max-width: 700px) {
+            .container {
+                padding-top: 0.75rem;
+            }
+
+            .toolbar-right {
+                margin-left: 0;
+            }
+
+            .brand-select {
+                min-width: 120px;
+            }
+
+            .corner-head,
+            .row-name-cell {
+                width: 62px;
+            }
+
+            .actions-head,
+            .actions-cell {
+                width: 43px;
+            }
+
+            .quantity-input {
+                width: 28px;
+                height: 25px;
+
+                font-size: 10px;
+            }
+
+            .store-label {
+                font-size: 0.95rem;
+            }
+
+            .capacity-value {
+                padding: 0.16rem 0.2rem;
+
+                font-size: 0.80rem;
+            }
+
+            .row-action-btn {
+                width: 39px;
+                font-size: 7px;
+            }
+
+            .order-name {
+                max-width: 120px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="root"></div>
+
+    <!-- =============================================================
+     REACT
+     ============================================================= -->
+
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script type="text/babel">
+
+        const {
+            useEffect,
+            useMemo,
+            useState
+        } = React;
+
+
+        /* ================================================================
+           DEFAULT STORE ORDER
+           ================================================================ */
+
+        const DEFAULT_STORE_ORDER = [
+            "WH_Gamarj",
+            "ShoeGal_9 Sab_CityMall",
+            "ICR_Shoes_TB_Galery",
+            "ICR_Shoes TB_Mall",
+            "ShoeGal_ Batu_Gamsax",
+            "ICR_Shoes East_Point",
+            "ShoeGal_10 Vazha",
+            "ShoeGal_ Chavch",
+            "ICR_Shoes_ Batu_GR_Mall",
+            "ICR_Shoes",
+            "ICR_Shoes_2",
+        ];
+
+        const STORE_ORDER_KEY =
+            "transfers-store-order-v3";
+
+
+        /* ================================================================
+           HELPERS
+           ================================================================ */
+
+        function normalizeStoreName(name) {
+            return String(name ?? "")
+                .replace(/_/g, " ")
+                .replace(/\s+/g, " ")
+                .trim()
+                .toLowerCase();
+        }
+
+
+        function compactStoreName(name) {
+            return normalizeStoreName(name)
+                .replace(/[^a-z0-9]/g, "");
+        }
+
+
+        function cellKey(fromId, toId) {
+            return `${Number(fromId)}-${Number(toId)}`;
+        }
+
+
+        function isWarehouse(store) {
+            return String(store?.type ?? "")
+                .trim()
+                .toLowerCase() === "warehouse";
+        }
+
+
+        /* ================================================================
+           QUANTITY VALIDATION
+           ================================================================ */
+
+        function validateQuantity(value) {
+
+            const text =
+                String(value ?? "").trim();
+
+            /*
+             * Empty input is allowed.
+             * It simply means "no transfer".
+             */
+            if (text === "") {
+                return {
+                    value: "",
+                    error: ""
+                };
+            }
+
+            /*
+             * Only positive whole numbers.
+             */
+            if (!/^\d+$/.test(text)) {
+                return {
+                    value: text,
+                    error: "Whole number only"
+                };
+            }
+
+            const number = Number(text);
+
+            if (!Number.isSafeInteger(number)) {
+                return {
+                    value: text,
+                    error: "Number is too large"
+                };
+            }
+
+            if (number <= 0) {
+                return {
+                    value: text,
+                    error: "Must be greater than 0"
+                };
+            }
+
+            return {
+                value: text,
+                error: ""
+            };
+        }
+
+
+        /* ================================================================
+           API HELPER
+           ================================================================
+        
+           207 is a real success (Multi-Status) - the backend committed
+           some rows and rejected others in the same request. It must
+           NOT be thrown as an error, or valid created transfers would
+           never reach the UI. Only 4xx/5xx are treated as hard failures.
+           ================================================================ */
+
+        async function apiFetch(url, options = {}) {
+
+            const response =
+                await fetch(url, options);
+
+            let data = null;
+
+            try {
+                data = await response.json();
+            }
+            catch (_) {
+
+                if (!response.ok) {
+                    throw new Error(
+                        `Request failed: ${response.status}`
+                    );
+                }
+
+                throw new Error(
+                    "Server returned an invalid response."
+                );
+            }
+
+            const isHardFailure =
+                !response.ok &&
+                response.status !== 207;
+
+            if (isHardFailure) {
+
+                if (data?.error) {
+                    throw new Error(data.error);
+                }
+
+                if (Array.isArray(data?.errors)) {
+
+                    throw new Error(
+                        data.errors
+                            .map(
+                                item =>
+                                    item?.error ||
+                                    "Request error"
+                            )
+                            .join(", ")
+                    );
+                }
+
+                throw new Error(
+                    `Request failed: ${response.status}`
+                );
+            }
+
+            return data;
+        }
+
+
+        /* ================================================================
+           LOCAL STORAGE
+           ================================================================ */
+
+        function loadSavedStoreIds() {
+
+            try {
+
+                const value =
+                    JSON.parse(
+                        localStorage.getItem(
+                            STORE_ORDER_KEY
+                        )
+                    );
+
+                return Array.isArray(value)
+                    ? value.map(Number)
+                    : null;
+            }
+            catch (_) {
+                return null;
+            }
+        }
+
+
+        function saveStoreIds(stores) {
+
+            localStorage.setItem(
+                STORE_ORDER_KEY,
+                JSON.stringify(
+                    stores.map(
+                        store => Number(store.id)
+                    )
+                )
+            );
+        }
+
+
+        /* ================================================================
+           DEFAULT ORDER MATCHING
+           ================================================================ */
+
+        function defaultOrderStores(stores) {
+
+            const exactRanks =
+                new Map(
+                    DEFAULT_STORE_ORDER.map(
+                        (name, index) => [
+                            normalizeStoreName(name),
+                            index
+                        ]
+                    )
+                );
+
+            const compactRanks =
+                new Map(
+                    DEFAULT_STORE_ORDER.map(
+                        (name, index) => [
+                            compactStoreName(name),
+                            index
+                        ]
+                    )
+                );
+
+            return [...stores].sort((a, b) => {
+
+                const aExact =
+                    exactRanks.get(
+                        normalizeStoreName(a.name)
+                    );
+
+                const bExact =
+                    exactRanks.get(
+                        normalizeStoreName(b.name)
+                    );
+
+                const aRank =
+                    Number.isInteger(aExact)
+                        ? aExact
+                        : compactRanks.get(
+                            compactStoreName(a.name)
+                        );
+
+                const bRank =
+                    Number.isInteger(bExact)
+                        ? bExact
+                        : compactRanks.get(
+                            compactStoreName(b.name)
+                        );
+
+                const aKnown =
+                    Number.isInteger(aRank);
+
+                const bKnown =
+                    Number.isInteger(bRank);
+
+                if (
+                    aKnown &&
+                    bKnown &&
+                    aRank !== bRank
+                ) {
+                    return aRank - bRank;
+                }
+
+                if (aKnown && !bKnown) {
+                    return -1;
+                }
+
+                if (!aKnown && bKnown) {
+                    return 1;
+                }
+
+                return String(a.name)
+                    .localeCompare(
+                        String(b.name)
+                    );
+            });
+        }
+
+
+        /* ================================================================
+           APPLY SAVED ORDER
+           ================================================================ */
+
+        function applySavedOrder(
+            stores,
+            savedIds
+        ) {
+
+            if (
+                !Array.isArray(savedIds) ||
+                !savedIds.length
+            ) {
+                return defaultOrderStores(stores);
+            }
+
+            const byId =
+                new Map(
+                    stores.map(
+                        store => [
+                            Number(store.id),
+                            store
+                        ]
+                    )
+                );
+
+            const result = [];
+
+            /*
+             * First use the saved order.
+             */
+            for (const id of savedIds) {
+
+                const store =
+                    byId.get(Number(id));
+
+                if (store) {
+                    result.push(store);
+                }
+            }
+
+            /*
+             * New stores that weren't in the saved
+             * order are appended.
+             */
+            for (const store of stores) {
+
+                const exists =
+                    result.some(
+                        item =>
+                            Number(item.id) ===
+                            Number(store.id)
+                    );
+
+                if (!exists) {
+                    result.push(store);
+                }
+            }
+
+            return result;
+        }
+
+
+        /* ================================================================
+           INITIAL STORE ORDER
+           ================================================================ */
+
+        function initialStoreOrder(stores) {
+
+            const saved =
+                loadSavedStoreIds();
+
+            if (saved?.length) {
+
+                return applySavedOrder(
+                    stores,
+                    saved
+                );
+            }
+
+            const ordered =
+                defaultOrderStores(stores);
+
+            saveStoreIds(ordered);
+
+            return ordered;
+        }
+
+
+        /* ================================================================
+           CAPACITY RESPONSE CONVERSION
+           ================================================================
+        
+           Flask returns (confirmed against store_capacities.py):
+        
+           {
+               "Store Name": {
+                   "store_id": 1,
+                   "brands": [
+                       {
+                           "brand": "ECCO",
+                           "capacity": 100
+                       }
+                   ]
+               }
+           }
+        
+           Convert it into:
+        
+           Map<storeId, Map<brand, capacity>>
+           ================================================================ */
+
+        function buildCapacityMap(rawData) {
+
+            const result =
+                new Map();
+
+            if (
+                !rawData ||
+                typeof rawData !== "object"
+            ) {
+                return result;
+            }
+
+            for (
+                const info of Object.values(rawData)
+            ) {
+
+                const storeId =
+                    Number(info?.store_id);
+
+                if (!Number.isInteger(storeId)) {
+                    continue;
+                }
+
+                const brandMap =
+                    new Map();
+
+                const brandList =
+                    Array.isArray(info?.brands)
+                        ? info.brands
+                        : [];
+
+                for (
+                    const item of brandList
+                ) {
+
+                    if (
+                        typeof item?.brand !==
+                        "string"
+                    ) {
+                        continue;
+                    }
+
+                    const capacity =
+                        Number(item.capacity);
+
+                    if (
+                        Number.isFinite(capacity)
+                    ) {
+                        brandMap.set(
+                            item.brand,
+                            capacity
+                        );
+                    }
+                }
+
+                result.set(
+                    storeId,
+                    brandMap
+                );
+            }
+
+            return result;
+        }
+
+
+        /* ================================================================
+           APP
+           ================================================================ */
+
+        function App() {
+
+            /* ------------------------------------------------------------
+               SERVER DATA
+               ------------------------------------------------------------ */
+
+            const [stores, setStores] =
+                useState([]);
+
+            const [transfers, setTransfers] =
+                useState([]);
+
+            const [capacities, setCapacities] =
+                useState({});
+
+
+            /* ------------------------------------------------------------
+               UI STATE
+               ------------------------------------------------------------ */
+
+            const [selectedBrand, setSelectedBrand] =
+                useState("");
+
+            const [showOrder, setShowOrder] =
+                useState(false);
+
+            const [loading, setLoading] =
+                useState(true);
+
+            const [submitting, setSubmitting] =
+                useState(false);
+
+
+            /* ------------------------------------------------------------
+               DRAFT STATE
+        
+               Drafts are stored by BRAND, so switching brands does
+               not erase quantities that haven't been submitted.
+               ------------------------------------------------------------ */
+
+            const [draftsByBrand, setDraftsByBrand] =
+                useState({});
+
+
+            /* ------------------------------------------------------------
+               VALIDATION STATE
+               ------------------------------------------------------------ */
+
+            const [errorsByBrand, setErrorsByBrand] =
+                useState({});
+
+
+            /* ------------------------------------------------------------
+               LAST SUBMIT ERRORS
+        
+               Rows the backend itself rejected (e.g. quantity <= 0)
+               on the most recent submit. Cleared on the next submit
+               attempt or brand change.
+               ------------------------------------------------------------ */
+
+            const [lastSubmitErrors, setLastSubmitErrors] =
+                useState([]);
+
+
+            /* ------------------------------------------------------------
+               STATUS MESSAGE
+               ------------------------------------------------------------ */
+
+            const [status, setStatus] =
+                useState({
+                    type: "info",
+                    text: ""
+                });
+
+
+            /* ============================================================
+               LOAD DATA
+               ============================================================ */
+
+            useEffect(() => {
+                loadPageData();
+            }, []);
+
+
+            async function loadPageData() {
+
+                setLoading(true);
+
+                setStatus({
+                    type: "info",
+                    text: ""
+                });
+
+                try {
+
+                    /*
+                     * All three endpoints are loaded together.
+                     */
+                    const [
+                        storesData,
+                        transfersData,
+                        capacityData
+                    ] = await Promise.all([
+
+                        apiFetch("/stores"),
+
+                        apiFetch("/transfers"),
+
+                        apiFetch("/capacities")
+                    ]);
+
+
+                    const storeList =
+                        Array.isArray(storesData)
+                            ? storesData
+                            : [];
+
+
+                    /*
+                     * Apply default/saved ordering.
+                     */
+                    setStores(
+                        initialStoreOrder(
+                            storeList
+                        )
+                    );
+
+
+                    /*
+                     * Existing active transfers.
+                     */
+                    setTransfers(
+                        Array.isArray(transfersData)
+                            ? transfersData
+                            : []
+                    );
+
+
+                    /*
+                     * Capacity response.
+                     */
+                    setCapacities(
+                        capacityData || {}
+                    );
+
+                }
+                catch (error) {
+
+                    setStatus({
+                        type: "error",
+                        text: error.message
+                    });
+
+                }
+                finally {
+
+                    setLoading(false);
+                }
+            }
+
+
+            /* ============================================================
+               CAPACITY MAP
+               ============================================================ */
+
+            const capacityMap =
+                useMemo(
+                    () =>
+                        buildCapacityMap(
+                            capacities
+                        ),
+                    [capacities]
+                );
+
+
+            /* ============================================================
+               AVAILABLE BRANDS
+               ============================================================ */
+
+            const brands =
+                useMemo(() => {
+
+                    const values =
+                        new Set();
+
+
+                    /*
+                     * Brands from existing transfers.
+                     */
+                    for (
+                        const transfer of transfers
+                    ) {
+
+                        if (
+                            typeof transfer?.brand ===
+                            "string"
+                        ) {
+
+                            values.add(
+                                transfer.brand
+                            );
+                        }
+                    }
+
+
+                    /*
+                     * Brands from capacity data.
+                     */
+                    for (
+                        const storeBrands
+                        of capacityMap.values()
+                    ) {
+
+                        for (
+                            const brand
+                            of storeBrands.keys()
+                        ) {
+
+                            values.add(brand);
+                        }
+                    }
+
+
+                    return [...values].sort(
+                        (a, b) =>
+                            a.localeCompare(b)
+                    );
+
+                }, [
+                    transfers,
+                    capacityMap
+                ]);
+
+
+            /* ============================================================
+               DEFAULT SELECTED BRAND
+               ============================================================ */
+
+            useEffect(() => {
+
+                if (!brands.length) {
+
+                    setSelectedBrand("");
+
+                    return;
+                }
+
+                if (
+                    !selectedBrand ||
+                    !brands.includes(
+                        selectedBrand
+                    )
+                ) {
+
+                    setSelectedBrand(
+                        brands[0]
+                    );
+                }
+
+            }, [
+                brands,
+                selectedBrand
+            ]);
+
+
+            /* ============================================================
+               VISIBLE STORES FOR THE SELECTED BRAND
+        
+               A store is shown if either:
+               - it is a warehouse (always shown), or
+               - it has a BrandCapacity row for the selected brand
+        
+               This is recomputed whenever the brand changes, so the
+               visible set of stores shifts with the dropdown. Drafts
+               are NOT cleared when a store drops out of view - they
+               stay in draftsByBrand and reappear if the manager
+               switches back to a brand where that store has capacity.
+               ============================================================ */
+
+            const visibleStores =
+                useMemo(() => {
+
+                    if (!selectedBrand) {
+                        return stores;
+                    }
+
+                    return stores.filter(store => {
+
+                        if (isWarehouse(store)) {
+                            return true;
+                        }
+
+                        const brandMap =
+                            capacityMap.get(
+                                Number(store.id)
+                            );
+
+                        return brandMap
+                            ? brandMap.has(selectedBrand)
+                            : false;
+                    });
+
+                }, [
+                    stores,
+                    capacityMap,
+                    selectedBrand
+                ]);
+
+
+            /* ============================================================
+               CURRENT BRAND DRAFTS
+               ============================================================ */
+
+            const currentDrafts =
+                draftsByBrand[
+                selectedBrand
+                ] || {};
+
+
+            /* ============================================================
+               CURRENT BRAND ERRORS
+               ============================================================ */
+
+            const currentErrors =
+                errorsByBrand[
+                selectedBrand
+                ] || {};
+
+
+            /* ============================================================
+               ACTIVE TRANSFERS BY CELL
+               ============================================================ */
+
+            const activeTransfersByCell =
+                useMemo(() => {
+
+                    const map =
+                        new Map();
+
+                    for (
+                        const transfer of transfers
+                    ) {
+
+                        if (
+                            transfer?.brand !==
+                            selectedBrand
+                        ) {
+                            continue;
+                        }
+
+                        const key =
+                            cellKey(
+                                transfer.from_store_id,
+                                transfer.to_store_id
+                            );
+
+
+                        /*
+                         * There should only be one active
+                         * transfer for a cell under the
+                         * current UI design.
+                         */
+                        if (!map.has(key)) {
+
+                            map.set(
+                                key,
+                                transfer
+                            );
+                        }
+                    }
+
+                    return map;
+
+                }, [
+                    transfers,
+                    selectedBrand
+                ]);
+
+
+            /* ============================================================
+               INBOUND TRANSFERS
+               ============================================================ */
+
+            const inboundByStore =
+                useMemo(() => {
+
+                    const result =
+                        new Map();
+
+                    for (
+                        const transfer of transfers
+                    ) {
+
+                        if (
+                            transfer?.brand !==
+                            selectedBrand
+                        ) {
+                            continue;
+                        }
+
+                        const toId =
+                            Number(
+                                transfer.to_store_id
+                            );
+
+                        const quantity =
+                            Number(
+                                transfer.quantity
+                            );
+
+                        if (
+                            !Number.isFinite(
+                                quantity
+                            )
+                        ) {
+                            continue;
+                        }
+
+                        result.set(
+                            toId,
+                            (
+                                result.get(toId) ||
+                                0
+                            ) + quantity
+                        );
+                    }
+
+                    return result;
+
+                }, [
+                    transfers,
+                    selectedBrand
+                ]);
+
+
+            /* ============================================================
+               DRAFT FLAGS
+               ============================================================ */
+
+            const hasDrafts =
+                Object.values(
+                    currentDrafts
+                ).some(
+                    value =>
+                        String(value).trim() !== ""
+                );
+
+
+            const hasDraftErrors =
+                Object.keys(
+                    currentErrors
+                ).length > 0;
+
+
+            /* ============================================================
+               CAPACITY
+               ============================================================ */
+
+            function capacityFor(storeId) {
+
+                const brandMap =
+                    capacityMap.get(
+                        Number(storeId)
+                    );
+
+                if (!brandMap) {
+                    return null;
+                }
+
+                const value =
+                    brandMap.get(
+                        selectedBrand
+                    );
+
+                return value === undefined
+                    ? null
+                    : value;
+            }
+
+
+            function capacityMinusInbound(
+                storeId
+            ) {
+
+                const capacity =
+                    capacityFor(storeId);
+
+                if (capacity === null) {
+                    return null;
+                }
+
+                const inbound =
+                    inboundByStore.get(
+                        Number(storeId)
+                    ) || 0;
+
+                return capacity - inbound;
+            }
+
+
+            /* ============================================================
+               UPDATE DRAFT
+               ============================================================ */
+
+            function updateDraft(
+                fromId,
+                toId,
+                value
+            ) {
+
+                const key =
+                    cellKey(
+                        fromId,
+                        toId
+                    );
+
+                const parsed =
+                    validateQuantity(value);
+
+
+                /*
+                 * Save the typed value.
+                 */
+                setDraftsByBrand(prev => ({
+
+                    ...prev,
+
+                    [selectedBrand]: {
+
+                        ...(prev[selectedBrand] || {}),
+
+                        [key]: parsed.value
+                    }
+                }));
+
+
+                /*
+                 * Save/remove validation error.
+                 */
+                setErrorsByBrand(prev => {
+
+                    const next = {
+                        ...(prev[selectedBrand] || {})
+                    };
+
+
+                    if (parsed.error) {
+
+                        next[key] =
+                            parsed.error;
+
+                    }
+                    else {
+
+                        delete next[key];
+                    }
+
+
+                    return {
+
+                        ...prev,
+
+                        [selectedBrand]: next
+                    };
+                });
+
+
+                setStatus({
+                    type: "info",
+                    text: ""
+                });
+            }
+
+
+            /* ============================================================
+               CLEAR DRAFT
+               ============================================================ */
+
+            function clearDraft(
+                fromId,
+                toId
+            ) {
+
+                const key =
+                    cellKey(
+                        fromId,
+                        toId
+                    );
+
+
+                setDraftsByBrand(prev => {
+
+                    const next = {
+                        ...(prev[selectedBrand] || {})
+                    };
+
+                    delete next[key];
+
+                    return {
+                        ...prev,
+                        [selectedBrand]: next
+                    };
+                });
+
+
+                setErrorsByBrand(prev => {
+
+                    const next = {
+                        ...(prev[selectedBrand] || {})
+                    };
+
+                    delete next[key];
+
+                    return {
+                        ...prev,
+                        [selectedBrand]: next
+                    };
+                });
+            }
+
+
+            /* ============================================================
+               DELETE ONE TRANSFER
+               ============================================================ */
+
+            async function deleteTransfer(
+                transfer
+            ) {
+
+                setStatus({
+                    type: "info",
+                    text: "Deleting transfer..."
+                });
+
+
+                try {
+
+                    await apiFetch(
+                        `/transfers/${Number(
+                            transfer.id
+                        )}`,
+                        {
+                            method: "DELETE"
+                        }
+                    );
+
+
+                    /*
+                     * Only remove it from client state
+                     * after the server confirmed deletion.
+                     */
+                    setTransfers(prev =>
+                        prev.filter(
+                            item =>
+                                Number(item.id) !==
+                                Number(transfer.id)
+                        )
+                    );
+
+
+                    clearDraft(
+                        transfer.from_store_id,
+                        transfer.to_store_id
+                    );
+
+
+                    setStatus({
+                        type: "success",
+                        text: "Transfer deleted."
+                    });
+
+                }
+                catch (error) {
+
+                    setStatus({
+                        type: "error",
+                        text:
+                            `Delete failed: ${error.message}`
+                    });
+                }
+            }
+
+
+            /* ============================================================
+               DELETE ALL TRANSFERS IN ONE ROW
+               ============================================================ */
+
+            async function deleteRowTransfers(
+                fromStoreId
+            ) {
+
+                const rowTransfers =
+                    transfers.filter(
+                        transfer =>
+                            transfer?.brand ===
+                            selectedBrand &&
+                            Number(
+                                transfer.from_store_id
+                            ) === Number(fromStoreId)
+                    );
+
+
+                if (!rowTransfers.length) {
+
+                    setStatus({
+                        type: "info",
+                        text:
+                            "No active transfers in this row."
+                    });
+
+                    return;
+                }
+
+
+                const confirmed =
+                    window.confirm(
+                        `Delete all ${rowTransfers.length} active transfer(s) from this row?`
+                    );
+
+
+                if (!confirmed) {
+                    return;
+                }
+
+
+                setStatus({
+                    type: "info",
+                    text:
+                        "Deleting row transfers..."
+                });
+
+
+                /*
+                 * allSettled is important here.
+        
+                 * Promise.all() would reject as soon as one
+                 * DELETE fails, which could make the UI lose
+                 * track of which individual requests actually
+                 * succeeded.
+        
+                 * allSettled lets us process every result.
+                 */
+                const results =
+                    await Promise.allSettled(
+                        rowTransfers.map(
+                            transfer =>
+                                apiFetch(
+                                    `/transfers/${Number(
+                                        transfer.id
+                                    )}`,
+                                    {
+                                        method: "DELETE"
+                                    }
+                                )
+                        )
+                    );
+
+
+                const deletedIds = [];
+
+                let failedCount = 0;
+
+
+                results.forEach(
+                    (result, index) => {
+
+                        if (
+                            result.status ===
+                            "fulfilled"
+                        ) {
+
+                            deletedIds.push(
+                                Number(
+                                    rowTransfers[
+                                        index
+                                    ].id
+                                )
+                            );
+
+                        }
+                        else {
+
+                            failedCount++;
+                        }
+                    }
+                );
+
+
+                /*
+                 * Remove only transfers whose DELETE
+                 * actually succeeded.
+                 */
+                if (deletedIds.length) {
+
+                    setTransfers(prev =>
+                        prev.filter(
+                            item =>
+                                !deletedIds.includes(
+                                    Number(item.id)
+                                )
+                        )
+                    );
+                }
+
+
+                if (failedCount) {
+
+                    setStatus({
+                        type: "error",
+                        text:
+                            `${deletedIds.length} deleted, ${failedCount} failed.`
+                    });
+
+                }
+                else {
+
+                    setStatus({
+                        type: "success",
+                        text:
+                            `${deletedIds.length} transfer(s) deleted.`
+                    });
+                }
+            }
+
+
+            /* ============================================================
+               SUBMIT NEW TRANSFERS
+               ============================================================
+        
+               The backend now returns { errors: [...], created: [...] }
+               on every outcome (201, 207, or 400), instead of a bare
+               array. 207 means partial success - some rows were
+               committed and some were rejected by the backend itself
+               (e.g. quantity <= 0 slipping past client validation, or
+               from == to). Those backend-side errors are shown to the
+               manager via lastSubmitErrors, separate from the
+               client-side per-cell validation errors in errorsByBrand.
+               ============================================================ */
+
+            async function submitTransfers() {
+
+                if (
+                    !selectedBrand ||
+                    submitting
+                ) {
+                    return;
+                }
+
+
+                const payload = [];
+
+                const validationErrors = {};
+
+
+                /*
+                 * Walk through every draft for this brand.
+                 */
+                for (
+                    const [
+                        key,
+                        value
+                    ]
+                    of Object.entries(
+                        currentDrafts
+                    )
+                ) {
+
+                    /*
+                     * Blank cells are ignored.
+                     */
+                    if (
+                        String(value).trim() === ""
+                    ) {
+                        continue;
+                    }
+
+
+                    const parsed =
+                        validateQuantity(value);
+
+
+                    /*
+                     * Never silently ignore invalid
+                     * user input.
+                     */
+                    if (parsed.error) {
+
+                        validationErrors[key] =
+                            parsed.error;
+
+                        continue;
+                    }
+
+
+                    /*
+                     * Existing active transfers are
+                     * locked and must never be submitted
+                     * a second time.
+                     */
+                    if (
+                        activeTransfersByCell.has(
+                            key
+                        )
+                    ) {
+                        continue;
+                    }
+
+
+                    const separatorIndex =
+                        key.indexOf("-");
+
+
+                    const fromId =
+                        Number(
+                            key.slice(
+                                0,
+                                separatorIndex
+                            )
+                        );
+
+
+                    const toId =
+                        Number(
+                            key.slice(
+                                separatorIndex + 1
+                            )
+                        );
+
+
+                    payload.push({
+
+                        brand:
+                            selectedBrand,
+
+                        quantity:
+                            Number(value),
+
+                        from_store_id:
+                            fromId,
+
+                        to_store_id:
+                            toId
+                    });
+                }
+
+
+                /*
+                 * Stop everything if any draft is invalid
+                 * on the client side, before it even reaches
+                 * the network.
+                 */
+                if (
+                    Object.keys(
+                        validationErrors
+                    ).length
+                ) {
+
+                    setErrorsByBrand(prev => ({
+
+                        ...prev,
+
+                        [selectedBrand]:
+                            validationErrors
+                    }));
+
+
+                    setStatus({
+                        type: "error",
+                        text:
+                            "Fix the highlighted quantities before submitting."
+                    });
+
+                    return;
+                }
+
+
+                if (!payload.length) {
+
+                    setStatus({
+                        type: "info",
+                        text:
+                            "There are no new transfers to submit."
+                    });
+
+                    return;
+                }
+
+
+                setSubmitting(true);
+
+                setLastSubmitErrors([]);
+
+                setStatus({
+                    type: "info",
+                    text:
+                        "Submitting transfers..."
+                });
+
+
+                try {
+
+                    /*
+                     * Flask endpoint expects:
+        
+                     * { "transfers": [...] }
+        
+                     * and now always returns:
+        
+                     * { "errors": [...], "created": [...] }
+                     */
+                    const result =
+                        await apiFetch(
+                            "/transfers",
+                            {
+                                method: "POST",
+
+                                headers: {
+                                    "Content-Type":
+                                        "application/json"
+                                },
+
+                                body:
+                                    JSON.stringify({
+                                        transfers:
+                                            payload
+                                    })
+                            }
+                        );
+
+
+                    const createdTransfers =
+                        Array.isArray(result?.created)
+                            ? result.created
+                            : [];
+
+                    const backendErrors =
+                        Array.isArray(result?.errors)
+                            ? result.errors
+                            : [];
+
+
+                    /*
+                     * Flask returns the actual DB IDs.
+        
+                     * Add them to server state so those
+                     * cells immediately become locked -
+                     * this happens even on a partial
+                     * (207) success.
+                     */
+                    if (createdTransfers.length) {
+
+                        setTransfers(prev => [
+                            ...prev,
+                            ...createdTransfers
+                        ]);
+                    }
+
+
+                    /*
+                     * Only clear the drafts that were
+                     * actually created. A row rejected by
+                     * the backend (e.g. quantity <= 0)
+                     * stays in the draft so the manager can
+                     * see and fix it, matched up against
+                     * backendErrors below.
+                     */
+                    const createdKeys =
+                        new Set(
+                            createdTransfers.map(
+                                t =>
+                                    cellKey(
+                                        t.from_store_id,
+                                        t.to_store_id
+                                    )
+                            )
+                        );
+
+                    setDraftsByBrand(prev => {
+
+                        const next = {
+                            ...(prev[selectedBrand] || {})
+                        };
+
+                        for (
+                            const key of createdKeys
+                        ) {
+                            delete next[key];
+                        }
+
+                        return {
+                            ...prev,
+                            [selectedBrand]: next
+                        };
+                    });
+
+
+                    setLastSubmitErrors(
+                        backendErrors
+                    );
+
+
+                    if (
+                        createdTransfers.length &&
+                        backendErrors.length
+                    ) {
+
+                        setStatus({
+                            type: "error",
+                            text:
+                                `${createdTransfers.length} submitted, ${backendErrors.length} rejected - see below.`
+                        });
+
+                    }
+                    else if (backendErrors.length) {
+
+                        setStatus({
+                            type: "error",
+                            text:
+                                `All rows rejected - see below.`
+                        });
+
+                    }
+                    else {
+
+                        setStatus({
+                            type: "success",
+                            text:
+                                `${createdTransfers.length} transfer(s) submitted.`
+                        });
+                    }
+
+                }
+                catch (error) {
+
+                    /*
+                     * Keep drafts intact on a hard failure
+                     * (network error, 400 with no created
+                     * rows, etc). The user can fix/retry them.
+                     */
+                    setStatus({
+                        type: "error",
+                        text:
+                            `Submit failed: ${error.message}`
+                    });
+
+                }
+                finally {
+
+                    setSubmitting(false);
+                }
+            }
+
+
+            /* ============================================================
+               MOVE STORE
+               ============================================================ */
+
+            function moveStore(
+                index,
+                direction
+            ) {
+
+                setStores(prev => {
+
+                    const next =
+                        [...prev];
+
+                    const target =
+                        index + direction;
+
+
+                    if (
+                        target < 0 ||
+                        target >= next.length
+                    ) {
+                        return prev;
+                    }
+
+
+                    [
+                        next[index],
+                        next[target]
+                    ] = [
+                            next[target],
+                            next[index]
+                        ];
+
+
+                    /*
+                     * Save real database IDs.
+                     */
+                    saveStoreIds(next);
+
+
+                    return next;
+                });
+            }
+
+
+            /* ============================================================
+               RESET STORE ORDER
+               ============================================================ */
+
+            function resetOrder() {
+
+                const ordered =
+                    defaultOrderStores(stores);
+
+                saveStoreIds(ordered);
+
+                setStores(ordered);
+
+
+                setStatus({
+                    type: "success",
+                    text:
+                        "Store order reset."
+                });
+            }
+
+
+            /* ============================================================
+               COUNT ACTIVE ROW TRANSFERS
+               ============================================================ */
+
+            function rowTransferCount(
+                fromStoreId
+            ) {
+
+                return transfers.filter(
+                    transfer =>
+                        transfer?.brand ===
+                        selectedBrand &&
+                        Number(
+                            transfer.from_store_id
+                        ) === Number(fromStoreId)
+                ).length;
+            }
+
+
+            /* ============================================================
+               STORE HEADER
+               ============================================================ */
+
+            function renderStoreHeader(
+                store
+            ) {
+
+                const value =
+                    capacityMinusInbound(
+                        store.id
+                    );
+
+
+                let badge =
+                    "No capacity";
+
+                let badgeClass =
+                    "missing";
+
+
+                if (value !== null) {
+
+                    badge =
+                        `თავისუფალი ადგილი: ${value}`;
+
+                    badgeClass =
+                        value < 0
+                            ? "negative"
+                            : "";
+                }
+
+
+                return (
+
+                    <th
+                        key={store.id}
+                        className="store-head"
+                        title={store.name}
+                    >
+
+                        <div className="store-label">
+                            {store.name}
+                        </div>
+
+
+                        <span
+                            className={
+                                `capacity-value ${badgeClass}`
+                            }
+                        >
+                            {badge}
+                        </span>
+
+                    </th>
+                );
+            }
+
+
+            /* ============================================================
+               TRANSFER CELL
+               ============================================================ */
+
+            function renderCell(
+                fromStore,
+                toStore
+            ) {
+
+                const fromId =
+                    Number(fromStore.id);
+
+                const toId =
+                    Number(toStore.id);
+
+
+                /*
+                 * Same store = disabled diagonal.
+                 */
+                if (
+                    fromId === toId
+                ) {
+
+                    return (
+
+                        <td
+                            key={toId}
+                            className="diagonal"
+                            aria-label="Same store"
+                        >
+                            —
+                        </td>
+                    );
+                }
+
+
+                const key =
+                    cellKey(
+                        fromId,
+                        toId
+                    );
+
+
+                const transfer =
+                    activeTransfersByCell.get(
+                        key
+                    );
+
+
+                const value =
+                    currentDrafts[key] ??
+                    "";
+
+
+                const error =
+                    currentErrors[key] ||
+                    "";
+
+
+                /*
+                 * --------------------------------------------------------
+                 * ACTIVE TRANSFER
+                 * --------------------------------------------------------
+                 *
+                 * Active transfer is locked.
+                 *
+                 * User can delete it using X.
+                 */
+                if (transfer) {
+
+                    return (
+
+                        <td key={toId}>
+
+                            <div className="cell-content">
+
+                                <input
+                                    className="quantity-input locked"
+                                    value={
+                                        transfer.quantity
+                                    }
+                                    readOnly
+                                    aria-label={
+                                        `Active transfer from ${fromStore.name} to ${toStore.name}`
+                                    }
+                                    title={
+                                        "Active transfer. Delete it to edit."
+                                    }
+                                />
+
+
+                                <button
+                                    type="button"
+                                    className="delete-btn"
+                                    title="Delete transfer"
+                                    aria-label="Delete transfer"
+                                    onClick={() =>
+                                        deleteTransfer(
+                                            transfer
+                                        )
+                                    }
+                                >
+                                    ×
+                                </button>
+
+                            </div>
+
+                        </td>
+                    );
+                }
+
+
+                /*
+                 * --------------------------------------------------------
+                 * NEW / DRAFT CELL
+                 * --------------------------------------------------------
+                 */
+
+                return (
+
+                    <td key={toId}>
+
+                        <input
+                            className={
+                                `quantity-input ${error
+                                    ? "invalid"
+                                    : ""
+                                }`
+                            }
+
+                            value={value}
+
+                            onChange={
+                                event =>
+                                    updateDraft(
+                                        fromId,
+                                        toId,
+                                        event.target.value
+                                    )
+                            }
+
+                            inputMode="numeric"
+
+                            aria-label={
+                                `Transfer from ${fromStore.name} to ${toStore.name}`
+                            }
+
+                            title={
+                                error ||
+                                "Enter quantity"
+                            }
+                        />
+
+
+                        {error && (
+
+                            <span className="cell-error">
+                                {error}
+                            </span>
+
+                        )}
+
+                    </td>
+                );
+            }
+
+
+            /* ============================================================
+               LOADING
+               ============================================================ */
+
+            if (loading) {
+
+                return (
+
+                    <div className="container">
+
+                        <h2>
+                            ტრანსფერები
+                        </h2>
+
+
+                        <div className="matrix-card">
+
+                            <div className="loading">
+                                იტვირთება მონაცემები...
+                            </div>
+
+                        </div>
+
+                    </div>
+                );
+            }
+
+
+            /* ============================================================
+               MAIN UI
+               ============================================================ */
+
+            return (
+
+                <div className="container">
+
+                    <h2>
+                        ტრანსფერები
+                    </h2>
+
+
+                    {/* ====================================================
+                TOOLBAR
+                ==================================================== */}
+
+                    <div className="toolbar-card">
+
+                        <div className="toolbar">
+
+                            <div className="toolbar-left">
+
+                                <span className="toolbar-label">
+                                    Brand
+                                </span>
+
+
+                                <select
+                                    className="brand-select"
+                                    value={selectedBrand}
+
+                                    onChange={event => {
+
+                                        setSelectedBrand(
+                                            event.target.value
+                                        );
+
+                                        setLastSubmitErrors([]);
+
+                                        setStatus({
+                                            type: "info",
+                                            text: ""
+                                        });
+                                    }}
+
+                                    disabled={
+                                        !brands.length
+                                    }
+                                >
+
+                                    {!brands.length && (
+
+                                        <option value="">
+                                            No brands
+                                        </option>
+
+                                    )}
+
+
+                                    {brands.map(
+                                        brand => (
+
+                                            <option
+                                                key={brand}
+                                                value={brand}
+                                            >
+                                                {brand}
+                                            </option>
+
+                                        )
+                                    )}
+
+                                </select>
+
+
+                                <button
+                                    type="button"
+                                    className="action-btn"
+
+                                    onClick={() =>
+                                        setShowOrder(
+                                            value => !value
+                                        )
+                                    }
+                                >
+                                    {
+                                        showOrder
+                                            ? "Hide order"
+                                            : "Store order"
+                                    }
+                                </button>
+
+                            </div>
+
+
+                            <div className="toolbar-right">
+
+                                <button
+                                    type="button"
+                                    className="action-btn primary"
+
+                                    disabled={
+                                        !hasDrafts ||
+                                        hasDraftErrors ||
+                                        submitting ||
+                                        !selectedBrand
+                                    }
+
+                                    onClick={
+                                        submitTransfers
+                                    }
+                                >
+
+                                    {
+                                        submitting
+                                            ? "Submitting..."
+                                            : "ტრანსფერების დაფიქსირება"
+                                    }
+
+                                </button>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    {/* ====================================================
+                STATUS
+                ==================================================== */}
+
+                    <div
+                        className={
+                            `status ${status.type}`
+                        }
+
+                        role="status"
+
+                        aria-live="polite"
+                    >
+                        {status.text}
+                    </div>
+
+
+                    {/* ====================================================
+                BACKEND-REJECTED ROWS FROM THE LAST SUBMIT
+        
+                Distinct from per-cell client validation errors -
+                these are rows the server itself refused (e.g.
+                quantity <= 0, or from == to) after a 207/400
+                response.
+                ==================================================== */}
+
+                    {lastSubmitErrors.length > 0 && (
+
+                        <div className="submit-errors">
+
+                            <div className="submit-errors-title">
+                                {
+                                    `${lastSubmitErrors.length} row(s) rejected by the server`
+                                }
+                            </div>
+
+                            <ul className="submit-errors-list">
+
+                                {lastSubmitErrors.map(
+                                    (err, index) => (
+
+                                        <li key={index}>
+                                            {
+                                                `Row ${err.index}: ${err.error}`
+                                            }
+                                        </li>
+
+                                    )
+                                )}
+
+                            </ul>
+
+                        </div>
+
+                    )}
+
+
+                    {/* ====================================================
+                STORE ORDER PANEL
+                ==================================================== */}
+
+                    {showOrder && (
+
+                        <div className="order-card">
+
+                            <div className="order-header">
+
+                                <span className="section-label">
+                                    Store order
+                                </span>
+
+
+                                <button
+                                    type="button"
+                                    className="action-btn reset-btn"
+                                    onClick={resetOrder}
+                                >
+                                    Reset default
+                                </button>
+
+                            </div>
+
+
+                            <div className="order-list">
+
+                                {stores.map(
+                                    (store, index) => (
+
+                                        <div
+                                            className="order-item"
+                                            key={store.id}
+                                        >
+
+                                            <span className="order-number">
+                                                {index + 1}
+                                            </span>
+
+
+                                            <span
+                                                className="order-name"
+                                                title={store.name}
+                                            >
+                                                {store.name}
+                                            </span>
+
+
+                                            <button
+                                                type="button"
+                                                className="move-btn"
+
+                                                disabled={
+                                                    index === 0
+                                                }
+
+                                                onClick={() =>
+                                                    moveStore(
+                                                        index,
+                                                        -1
+                                                    )
+                                                }
+
+                                                aria-label={
+                                                    `Move ${store.name} up`
+                                                }
+
+                                                title="Move up"
+                                            >
+                                                ↑
+                                            </button>
+
+
+                                            <button
+                                                type="button"
+                                                className="move-btn"
+
+                                                disabled={
+                                                    index ===
+                                                    stores.length - 1
+                                                }
+
+                                                onClick={() =>
+                                                    moveStore(
+                                                        index,
+                                                        1
+                                                    )
+                                                }
+
+                                                aria-label={
+                                                    `Move ${store.name} down`
+                                                }
+
+                                                title="Move down"
+                                            >
+                                                ↓
+                                            </button>
+
+                                        </div>
+
+                                    )
+                                )}
+
+                            </div>
+
+                        </div>
+
+                    )}
+
+
+                    {/* ====================================================
+                NO STORES
+                ==================================================== */}
+
+                    {!stores.length ? (
+
+                        <div className="matrix-card">
+
+                            <div className="empty-state">
+                                No stores returned by /stores.
+                            </div>
+
+                        </div>
+
+                    ) : !selectedBrand ? (
+
+                        <div className="matrix-card">
+
+                            <div className="empty-state">
+                                No brand data available.
+                            </div>
+
+                        </div>
+
+                    ) : !visibleStores.length ? (
+
+                        <div className="matrix-card">
+
+                            <div className="empty-state">
+                                No stores have capacity configured for {selectedBrand}.
+                            </div>
+
+                        </div>
+
+                    ) : (
+
+                        /* =================================================
+                           TRANSFER MATRIX
+        
+                           Rows AND columns both use visibleStores, so
+                           the grid stays square - a store missing
+                           capacity for this brand is hidden as both a
+                           source and a destination, not just one side.
+                           ================================================= */
+
+                        <div className="matrix-card">
+
+                            <div className="table-scroll">
+
+                                <table>
+
+                                    <thead>
+
+                                        <tr>
+
+                                            <th className="corner-head">
+                                                From \ To
+                                            </th>
+
+
+                                            {visibleStores.map(
+                                                renderStoreHeader
+                                            )}
+
+
+                                            <th className="actions-head">
+
+                                            </th>
+
+                                        </tr>
+
+                                    </thead>
+
+
+                                    <tbody>
+
+                                        {visibleStores.map(
+                                            fromStore => {
+
+                                                const count =
+                                                    rowTransferCount(
+                                                        fromStore.id
+                                                    );
+
+
+                                                return (
+
+                                                    <tr
+                                                        key={
+                                                            fromStore.id
+                                                        }
+                                                    >
+
+                                                        {/* =================
+                                                    ROW NAME
+                                                    ================= */}
+
+                                                        <td
+                                                            className="row-name-cell"
+                                                        >
+
+                                                            <div
+                                                                className="store-label"
+                                                                title={
+                                                                    fromStore.name
+                                                                }
+                                                            >
+                                                                {
+                                                                    fromStore.name
+                                                                }
+                                                            </div>
+
+                                                        </td>
+
+
+                                                        {/* =================
+                                                    TRANSFER CELLS
+                                                    ================= */}
+
+                                                        {visibleStores.map(
+                                                            toStore =>
+                                                                renderCell(
+                                                                    fromStore,
+                                                                    toStore
+                                                                )
+                                                        )}
+
+
+                                                        {/* =================
+                                                    ROW DELETE
+                                                    ================= */}
+
+                                                        <td
+                                                            className="actions-cell"
+                                                        >
+
+                                                            <button
+                                                                type="button"
+                                                                className="row-action-btn"
+
+                                                                disabled={
+                                                                    count === 0
+                                                                }
+
+                                                                onClick={() =>
+                                                                    deleteRowTransfers(
+                                                                        fromStore.id
+                                                                    )
+                                                                }
+
+                                                                title={
+                                                                    count
+                                                                        ? `Delete all ${count} active transfer(s) in this row`
+                                                                        : "No active transfers in this row"
+                                                                }
+                                                            >
+                                                                ტრანსფერის წაშლა
+                                                            </button>
+
+
+                                                            <span className="row-count">
+                                                                {count} active
+                                                            </span>
+
+                                                        </td>
+
+                                                    </tr>
+
+                                                );
+                                            }
+                                        )}
+
+                                    </tbody>
+
+                                </table>
+
+                            </div>
+
+                        </div>
+
+                    )}
+
+                </div>
+            );
+        }
+
+
+        /* ================================================================
+           MOUNT REACT
+           ================================================================ */
+
+        ReactDOM
+            .createRoot(
+                document.getElementById("root")
+            )
+            .render(
+                <App />
+            );
+
+    </script>
+
+</body>
+
+</html>
