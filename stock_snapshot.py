@@ -10,9 +10,9 @@ BRAND_1_COL = 3
 ST_COL = 4
 QTY_COL = 5
 
-snapshot_import_bp = Blueprint("snapshot", __name__)
+stock_snapshot_bp = Blueprint("snapshot", __name__)
 
-@snapshot_import_bp.route("/import-stock", methods=["GET", "POST"])
+@stock_snapshot_bp.route("/import-stock", methods=["GET", "POST"])
 def import_stock():
     if request.method == "POST":
         file = request.files.get("file")
@@ -24,6 +24,18 @@ def import_stock():
         write_stock_data(totals)
         return jsonify({"processed": processed, "skipped": skipped})
     return render_template("import.html")
+
+@stock_snapshot_bp.route("/current-stock", methods=["GET"])
+def current_stock():
+    result =  [
+        {
+        "store_id": snapshot.store_id, 
+        "brand": snapshot.brand , 
+        "category": snapshot.category, 
+        "quantity": snapshot.quantity
+        }
+    for snapshot in StockSnapshot.query.all()]
+    return jsonify(result)
 
 def read_stock_data(file):
     if not file or not file.filename.endswith(".xlsx"):
@@ -63,6 +75,16 @@ def validate_stock_data(sheet, store_lookup):
         processed += 1
     return(processed, skipped, totals)
 
+def write_stock_data(totals):
+    for k, v in totals.items():
+        store_id = k[0]
+        brand = k[1]
+        category = k[2]
+        quantity = v
+        update_stock_data(store_id, brand, category, quantity)
+    db.session.commit()
+
+
 def update_stock_data(store_id, brand, category, quantity):
     stock_snapshot = StockSnapshot.query.filter_by(store_id=store_id, brand=brand, category=category).first()
     if stock_snapshot:
@@ -77,11 +99,6 @@ def update_stock_data(store_id, brand, category, quantity):
  )
         db.session.add(new_stock_snapshot)
 
-def write_stock_data(totals):
-    for k, v in totals.items():
-        store_id = k[0]
-        brand = k[1]
-        category = k[2]
-        quantity = v
-        update_stock_data(store_id, brand, category, quantity)
-    db.session.commit()        
+
+
+            

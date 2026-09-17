@@ -6,7 +6,7 @@ from flask_migrate import Migrate
 from flask_cors import CORS
 from transfers import transfers_bp
 from capacities import capacities_bp
-from stock_snapshot_import import snapshot_import_bp
+from stock_snapshot import stock_snapshot_bp
 from stores import stores_bp
 load_dotenv()
 
@@ -19,8 +19,9 @@ CORS(app)
 
 app.register_blueprint(transfers_bp)
 app.register_blueprint(capacities_bp)
-app.register_blueprint(snapshot_import_bp)
+app.register_blueprint(stock_snapshot_bp)
 app.register_blueprint(stores_bp)
+
 
 
 @app.route("/")
