@@ -32,6 +32,11 @@ def home():
 def transfers_page():
     return render_template("transfers.html")
 
+@app.route("/edit-capacities")
+def edit_capacities():
+    return render_template("edit-capacities.html")
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)
