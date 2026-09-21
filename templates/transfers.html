@@ -1191,19 +1191,25 @@
            CAPACITY RESPONSE CONVERSION
            ================================================================
         
-           Flask returns (confirmed against store_capacities.py):
+           /capacities returns (confirmed against capacities.py):
         
            {
                "Store Name": {
                    "store_id": 1,
                    "brands": [
                        {
-                           "brand": "ECCO",
-                           "capacity": 100
+                           "brand": "Ecco",
+                           "capacity": 5000
                        }
                    ]
                }
            }
+        
+           This is still used to populate the brand dropdown and to
+           decide which stores are visible for a given brand
+           (visibleStores) - it is NOT used for the free-space badge
+           anymore, since it only holds raw capacity, not capacity
+           minus stock minus inbound transfers.
         
            Convert it into:
         
@@ -1276,6 +1282,101 @@
 
 
         /* ================================================================
+           FREE-SPACE RESPONSE CONVERSION
+           ================================================================
+        
+           /capacity-check returns (confirmed against capacities.py):
+        
+           {
+               "Store Name": {
+                   "Ecco": 4700,
+                   "Geox": 4700,
+                   "Studio": 4700
+               }
+           }
+        
+           Free space is already fully computed server-side
+           (capacity - current_stock - current_transfers), so the
+           frontend does no subtraction of its own anymore.
+        
+           /capacity-check keys its response by STORE NAME, not
+           store_id, so the stores list (already loaded via
+           GET /stores) is used here to resolve each name back to
+           its id - producing the same Map<storeId, Map<brand,...>>
+           shape the badge rendering code already expects.
+        
+           Convert it into:
+        
+           Map<storeId, Map<brand, freeSpace>>
+           ================================================================ */
+
+        function buildFreeSpaceMap(rawData, stores) {
+
+            const result =
+                new Map();
+
+            if (
+                !rawData ||
+                typeof rawData !== "object"
+            ) {
+                return result;
+            }
+
+            const idByName =
+                new Map(
+                    stores.map(
+                        store => [
+                            store.name,
+                            Number(store.id)
+                        ]
+                    )
+                );
+
+            for (
+                const [storeName, brandValues]
+                of Object.entries(rawData)
+            ) {
+
+                const storeId =
+                    idByName.get(storeName);
+
+                if (!Number.isInteger(storeId)) {
+                    continue;
+                }
+
+                const brandMap =
+                    new Map();
+
+                if (
+                    brandValues &&
+                    typeof brandValues === "object"
+                ) {
+
+                    for (
+                        const [brand, freeSpace]
+                        of Object.entries(brandValues)
+                    ) {
+
+                        const value =
+                            Number(freeSpace);
+
+                        if (Number.isFinite(value)) {
+                            brandMap.set(brand, value);
+                        }
+                    }
+                }
+
+                result.set(
+                    storeId,
+                    brandMap
+                );
+            }
+
+            return result;
+        }
+
+
+        /* ================================================================
            APP
            ================================================================ */
 
@@ -1294,6 +1395,9 @@
             const [capacities, setCapacities] =
                 useState({});
 
+            const [freeSpace, setFreeSpace] =
+                useState({});
+
 
             /* ------------------------------------------------------------
                UI STATE
@@ -1301,6 +1405,7 @@
 
             const [selectedBrand, setSelectedBrand] =
                 useState("");
+            console.log('selectedBrand is:', selectedBrand);
 
             const [showOrder, setShowOrder] =
                 useState(false);
@@ -1356,6 +1461,11 @@
 
             /* ============================================================
                LOAD DATA
+        
+               /capacity-check is loaded alongside the other three -
+               it drives the free-space badge. A failure here is
+               non-fatal to the rest of the page: the badge just
+               falls back to "No capacity" if freeSpace stays empty.
                ============================================================ */
 
             useEffect(() => {
@@ -1374,20 +1484,20 @@
 
                 try {
 
-                    /*
-                     * All three endpoints are loaded together.
-                     */
                     const [
                         storesData,
                         transfersData,
-                        capacityData
+                        capacityData,
+                        freeSpaceData
                     ] = await Promise.all([
 
                         apiFetch("/stores"),
 
                         apiFetch("/transfers"),
 
-                        apiFetch("/capacities")
+                        apiFetch("/capacities"),
+
+                        apiFetch("/capacity-check")
                     ]);
 
 
@@ -1418,10 +1528,18 @@
 
 
                     /*
-                     * Capacity response.
+                     * Capacity response (dropdown + visibleStores).
                      */
                     setCapacities(
                         capacityData || {}
+                    );
+
+
+                    /*
+                     * Free-space response (badge values).
+                     */
+                    setFreeSpace(
+                        freeSpaceData || {}
                     );
 
                 }
@@ -1441,7 +1559,40 @@
 
 
             /* ============================================================
-               CAPACITY MAP
+               REFRESH FREE SPACE ONLY
+        
+               Called after a transfer is submitted or deleted, so the
+               badge reflects the new inbound total without a full
+               page reload. Advisory only - never blocks the action
+               that triggered it, and a failure here just leaves the
+               previous badge values in place.
+               ============================================================ */
+
+            async function refreshFreeSpace() {
+
+                try {
+
+                    const freeSpaceData =
+                        await apiFetch(
+                            "/capacity-check"
+                        );
+
+                    setFreeSpace(
+                        freeSpaceData || {}
+                    );
+                }
+                catch (_) {
+
+                    /*
+                     * Advisory data only - do not surface
+                     * an error to the user over this.
+                     */
+                }
+            }
+
+
+            /* ============================================================
+               CAPACITY MAP (dropdown + visibleStores only)
                ============================================================ */
 
             const capacityMap =
@@ -1454,6 +1605,21 @@
                 );
 
 
+            /* ============================================================
+               FREE SPACE MAP (badge values)
+               ============================================================ */
+
+            const freeSpaceMap =
+                useMemo(
+                    () =>
+                        buildFreeSpaceMap(
+                            freeSpace,
+                            stores
+                        ),
+                    [freeSpace, stores]
+                );
+
+            console.log('freeSpaceMap:', freeSpaceMap);
             /* ============================================================
                AVAILABLE BRANDS
                ============================================================ */
@@ -1551,11 +1717,7 @@
                - it is a warehouse (always shown), or
                - it has a BrandCapacity row for the selected brand
         
-               This is recomputed whenever the brand changes, so the
-               visible set of stores shifts with the dropdown. Drafts
-               are NOT cleared when a store drops out of view - they
-               stay in draftsByBrand and reappear if the manager
-               switches back to a brand where that store has capacity.
+               Still driven by capacityMap (/capacities), unchanged.
                ============================================================ */
 
             const visibleStores =
@@ -1659,62 +1821,6 @@
 
 
             /* ============================================================
-               INBOUND TRANSFERS
-               ============================================================ */
-
-            const inboundByStore =
-                useMemo(() => {
-
-                    const result =
-                        new Map();
-
-                    for (
-                        const transfer of transfers
-                    ) {
-
-                        if (
-                            transfer?.brand !==
-                            selectedBrand
-                        ) {
-                            continue;
-                        }
-
-                        const toId =
-                            Number(
-                                transfer.to_store_id
-                            );
-
-                        const quantity =
-                            Number(
-                                transfer.quantity
-                            );
-
-                        if (
-                            !Number.isFinite(
-                                quantity
-                            )
-                        ) {
-                            continue;
-                        }
-
-                        result.set(
-                            toId,
-                            (
-                                result.get(toId) ||
-                                0
-                            ) + quantity
-                        );
-                    }
-
-                    return result;
-
-                }, [
-                    transfers,
-                    selectedBrand
-                ]);
-
-
-            /* ============================================================
                DRAFT FLAGS
                ============================================================ */
 
@@ -1734,13 +1840,17 @@
 
 
             /* ============================================================
-               CAPACITY
+               FREE SPACE LOOKUP
+        
+               Replaces the old capacityMinusInbound placeholder.
+               Reads the fully server-computed value straight from
+               freeSpaceMap - no client-side subtraction left.
                ============================================================ */
 
-            function capacityFor(storeId) {
+            function freeSpaceFor(storeId) {
 
                 const brandMap =
-                    capacityMap.get(
+                    freeSpaceMap.get(
                         Number(storeId)
                     );
 
@@ -1756,26 +1866,6 @@
                 return value === undefined
                     ? null
                     : value;
-            }
-
-
-            function capacityMinusInbound(
-                storeId
-            ) {
-
-                const capacity =
-                    capacityFor(storeId);
-
-                if (capacity === null) {
-                    return null;
-                }
-
-                const inbound =
-                    inboundByStore.get(
-                        Number(storeId)
-                    ) || 0;
-
-                return capacity - inbound;
             }
 
 
@@ -1902,6 +1992,9 @@
 
             /* ============================================================
                DELETE ONE TRANSFER
+        
+               Re-fetches free space after a successful delete, since
+               removing an inbound transfer changes the badge value.
                ============================================================ */
 
             async function deleteTransfer(
@@ -1945,6 +2038,13 @@
                     );
 
 
+                    /*
+                     * Advisory refresh - badge reflects the
+                     * removed transfer.
+                     */
+                    refreshFreeSpace();
+
+
                     setStatus({
                         type: "success",
                         text: "Transfer deleted."
@@ -1964,6 +2064,9 @@
 
             /* ============================================================
                DELETE ALL TRANSFERS IN ONE ROW
+        
+               Re-fetches free space after the batch completes, once,
+               rather than once per deleted transfer.
                ============================================================ */
 
             async function deleteRowTransfers(
@@ -2084,6 +2187,16 @@
                 }
 
 
+                /*
+                 * Advisory refresh - badge reflects whatever
+                 * actually got deleted.
+                 */
+                if (deletedIds.length) {
+
+                    refreshFreeSpace();
+                }
+
+
                 if (failedCount) {
 
                     setStatus({
@@ -2108,14 +2221,19 @@
                SUBMIT NEW TRANSFERS
                ============================================================
         
-               The backend now returns { errors: [...], created: [...] }
-               on every outcome (201, 207, or 400), instead of a bare
-               array. 207 means partial success - some rows were
-               committed and some were rejected by the backend itself
-               (e.g. quantity <= 0 slipping past client validation, or
-               from == to). Those backend-side errors are shown to the
-               manager via lastSubmitErrors, separate from the
-               client-side per-cell validation errors in errorsByBrand.
+               The backend returns { errors: [...], created: [...] }
+               on every outcome (201, 207, or 400). 207 means partial
+               success - some rows were committed and some were
+               rejected by the backend itself (e.g. quantity <= 0
+               slipping past client validation, or from == to). Those
+               backend-side errors are shown to the manager via
+               lastSubmitErrors, separate from the client-side
+               per-cell validation errors in errorsByBrand.
+        
+               Free space is re-fetched after any row is actually
+               created - advisory only, matches the decision that the
+               backend never calls /capacity-check during POST
+               /transfers itself.
                ============================================================ */
 
             async function submitTransfers() {
@@ -2285,7 +2403,7 @@
         
                      * { "transfers": [...] }
         
-                     * and now always returns:
+                     * and returns:
         
                      * { "errors": [...], "created": [...] }
                      */
@@ -2378,6 +2496,16 @@
                     setLastSubmitErrors(
                         backendErrors
                     );
+
+
+                    /*
+                     * Advisory refresh - only meaningful if
+                     * something was actually created.
+                     */
+                    if (createdTransfers.length) {
+
+                        refreshFreeSpace();
+                    }
 
 
                     if (
@@ -2521,6 +2649,10 @@
 
             /* ============================================================
                STORE HEADER
+        
+               Badge now reads directly from freeSpaceFor (real
+               /capacity-check data) instead of the old
+               capacityMinusInbound placeholder.
                ============================================================ */
 
             function renderStoreHeader(
@@ -2528,7 +2660,7 @@
             ) {
 
                 const value =
-                    capacityMinusInbound(
+                    freeSpaceFor(
                         store.id
                     );
 

@@ -6,7 +6,7 @@ from sqlalchemy import func
 capacities_bp = Blueprint("capacities", __name__)
 
 BRAND_GROUPS = {
-    "ECCOGEOXSTUDIO": ["Ecco", "Geox", "Studio"]
+    "ECCOGEOXSTUDIO": ["ECCO", "GEOX", "STUDIO"]
 }
 
 
@@ -67,7 +67,7 @@ def check_capacity():
         current_stock = 0
         for row in current_stock_rows:
                 current_stock += row.quantity
-
+                print(row)
 
         if name not in free_space:
             free_space[name] = {}

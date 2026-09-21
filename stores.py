@@ -45,8 +45,7 @@ def seed_stores():
     db.session.commit()
     print(f"Done. Created: {created}, Updated: {updated}")
 
-from app import app
-
 if __name__ == "__main__":
+    from app import app
     with app.app_context():
         seed_stores()

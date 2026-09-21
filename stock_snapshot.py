@@ -32,9 +32,10 @@ def current_stock():
         "store_id": snapshot.store_id, 
         "brand": snapshot.brand , 
         "category": snapshot.category, 
-        "quantity": snapshot.quantity
+        "quantity": snapshot.quantity,
+        "store_name": store.name
         }
-    for snapshot in StockSnapshot.query.all()]
+    for snapshot, store in db.session.query(StockSnapshot, Store).join(Store, StockSnapshot.store_id == Store.id).all()]
     return jsonify(result)
 
 def read_stock_data(file):
