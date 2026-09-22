@@ -78,11 +78,11 @@
         }
 
         .store-name::before {
-            content: 'Store';
+            content: 'მაღაზია';
             display: block;
             margin-bottom: 0.18rem;
             color: var(--text-secondary, #64748b);
-            font-size: 0.68rem;
+            font-size: 0.80rem;
             font-weight: 700;
             letter-spacing: 0.08em;
             text-transform: uppercase;
@@ -95,8 +95,8 @@
         }
 
         .brand-row {
-            display: flex;
-            justify-content: space-between;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
             align-items: center;
             gap: 0.65rem;
             font-size: 14px;
@@ -113,7 +113,8 @@
         }
 
         .brand-info {
-            flex: 1;
+            grid-column: 1 / -1;
+            min-width: 0;
         }
 
         .brand-label {
@@ -137,9 +138,10 @@
             padding: 0.32rem 0.5rem;
             font-size: 0.8rem;
             font-weight: 700;
-            margin-right: 0.1rem;
             min-width: 3.25rem;
             text-align: right;
+            white-space: nowrap;
+            justify-self: start;
         }
 
         .edit-btn {
@@ -149,8 +151,13 @@
             padding: 0.38rem 0.55rem;
             border-radius: var(--radius, 8px);
             cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.3rem;
             font-size: 12px;
             font-weight: 600;
+            white-space: nowrap;
             transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
         }
 
@@ -218,8 +225,15 @@
         }
 
         @keyframes modal-enter {
-            from { opacity: 0; transform: translateY(8px) scale(0.98); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
+            from {
+                opacity: 0;
+                transform: translateY(8px) scale(0.98);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
         }
 
         .modal-header {
@@ -350,12 +364,18 @@
         }
 
         @media (max-width: 480px) {
-            .container { padding-top: 0.75rem; }
-            .stores-grid { grid-template-columns: 1fr; }
-            .brand-row { flex-wrap: wrap; }
-            .brand-info { min-width: calc(100% - 5rem); }
-            .edit-btn { margin-left: auto; }
-            .modal { width: calc(100% - 1.5rem); padding: 1.25rem; }
+            .container {
+                padding-top: 0.75rem;
+            }
+
+            .stores-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .modal {
+                width: calc(100% - 1.5rem);
+                padding: 1.25rem;
+            }
         }
     </style>
 </head>
@@ -363,7 +383,7 @@
 <body>
 
     <div class="container">
-        <h2>Store capacities</h2>
+        <h2>მაღაზიების ტევადობები</h2>
 
 
         <div id="storesContainer" class="stores-grid">
@@ -374,30 +394,30 @@
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal">
             <div class="modal-header">
-                <span>Edit capacity</span>
+                <span>ტევადობის რედაქტირება</span>
                 <button class="close-btn" id="closeBtn">&times;</button>
             </div>
 
             <div class="form-group">
-                <label>Store</label>
+                <label>მაღაზია</label>
                 <input type="text" id="storeNameField" readonly
                     style="background: var(--surface-0); cursor: not-allowed;">
             </div>
 
             <div class="form-group">
-                <label>Brand</label>
+                <label>ბრენდი</label>
                 <input type="text" id="brandField" readonly style="background: var(--surface-0); cursor: not-allowed;">
             </div>
 
             <div class="form-group">
-                <label>Capacity</label>
+                <label>ტევადობა</label>
                 <input type="number" id="capacityField" placeholder="Enter capacity">
                 <div class="error-msg" id="errorMsg"></div>
             </div>
 
             <div class="modal-footer">
-                <button class="btn-secondary" id="cancelBtn">Cancel</button>
-                <button class="btn-primary" id="saveBtn">Save</button>
+                <button class="btn-secondary" id="cancelBtn">გაუქმება</button>
+                <button class="btn-primary" id="saveBtn">შენახვა</button>
             </div>
         </div>
     </div>
@@ -410,11 +430,10 @@
 
         async function fetchCapacities() {
             try {
-                const response = await fetch(`${API_BASE}/capacities`);
-                if (!response.ok) throw new Error('Failed to fetch capacities');
+                const response = await fetch(`${API_BASE}/capacity-groups`);
+                if (!response.ok) throw new Error('Failed to fetch capacity groups');
                 return await response.json();
             } catch (err) {
-                console.error('Error fetching capacities:', err);
                 return {};
             }
         }
@@ -441,12 +460,12 @@
           ${brands.map(item => `
             <div class="brand-row">
               <div class="brand-info">
-                <div class="brand-label">Brand</div>
+                <div class="brand-label">ბრენდი</div>
                 <div class="brand-name">${item.brand}</div>
               </div>
               <div class="capacity-value">${item.capacity}</div>
               <button class="edit-btn" data-store-id="${storeId}" data-store="${storeName}" data-brand="${item.brand}" data-capacity="${item.capacity}">
-                <i class="ti ti-edit" style="font-size: 14px;" aria-hidden="true"></i> Edit
+                <i class="ti ti-edit" style="font-size: 14px;" aria-hidden="true"></i> რედაქტირება
               </button>
             </div>
           `).join('')}
@@ -527,7 +546,6 @@
                 renderStores(updated);
             } catch (err) {
                 errorMsg.textContent = 'Network error. Try again.';
-                console.error(err);
             }
         }
 
@@ -539,11 +557,6 @@
             document.getElementById('errorMsg').textContent = '';
         });
 
-        document.getElementById('modalOverlay').addEventListener('click', (e) => {
-            if (e.target === document.getElementById('modalOverlay')) {
-                closeModal();
-            }
-        });
 
         (async () => {
             const data = await fetchCapacities();

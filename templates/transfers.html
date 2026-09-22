@@ -143,7 +143,7 @@
         }
 
         .brand-select {
-            min-width: 150px;
+            width: auto;
 
             padding: 0.42rem 0.6rem;
 
@@ -380,7 +380,6 @@
         table {
 
             width: 100%;
-
             table-layout: fixed;
 
             border-collapse: collapse;
@@ -412,7 +411,7 @@
 
         .corner-head,
         .row-name-cell {
-            width: 86px;
+            width: 76px;
         }
 
         .actions-head,
@@ -456,13 +455,13 @@
         .store-label {
             color: var(--text-primary, #172033);
 
-            font-size: 0.9rem;
+            font-size: 0.7rem;
             line-height: 1.5;
 
             font-weight: 650;
 
             overflow-wrap: anywhere;
-            word-break: keep-all;
+            word-break: normal;
         }
 
         /* =========================================================
@@ -485,7 +484,7 @@
 
             color: var(--fill-accent, #2563eb);
 
-            font-size: 0.8rem;
+            font-size: 0.62rem;
             font-weight: 700;
             line-height: 1.1;
 
@@ -534,7 +533,9 @@
            ========================================================= */
 
         .quantity-input {
-            width: 50px;
+            width: 100%;
+            max-width: 50px;
+            min-width: 0;
             height: 28px;
 
             padding: 0.18rem;
@@ -1405,7 +1406,6 @@
 
             const [selectedBrand, setSelectedBrand] =
                 useState("");
-            console.log('selectedBrand is:', selectedBrand);
 
             const [showOrder, setShowOrder] =
                 useState(false);
@@ -1619,7 +1619,6 @@
                     [freeSpace, stores]
                 );
 
-            console.log('freeSpaceMap:', freeSpaceMap);
             /* ============================================================
                AVAILABLE BRANDS
                ============================================================ */
