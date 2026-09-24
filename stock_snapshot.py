@@ -3,7 +3,7 @@ from datetime import datetime
 from openpyxl import load_workbook
 from models import  Store
 from flask import Blueprint, request, render_template, jsonify
-
+from flask_login import login_required
 
 CAT_1_COL = 0
 BRAND_1_COL = 3
@@ -12,7 +12,10 @@ QTY_COL = 5
 
 stock_snapshot_bp = Blueprint("snapshot", __name__)
 
+
+
 @stock_snapshot_bp.route("/import-stock", methods=["GET", "POST"])
+@login_required
 def import_stock():
     if request.method == "POST":
         file = request.files.get("file")
@@ -25,7 +28,9 @@ def import_stock():
         return jsonify({"processed": processed, "skipped": skipped})
     return render_template("import.html")
 
+
 @stock_snapshot_bp.route("/current-stock", methods=["GET"])
+@login_required
 def current_stock():
     result =  [
         {

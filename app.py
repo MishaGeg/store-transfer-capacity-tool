@@ -1,13 +1,15 @@
 from flask import Flask, render_template
 from dotenv import load_dotenv
 import os
-from models import db
+from models import db, User
 from flask_migrate import Migrate
 from flask_cors import CORS
 from transfers import transfers_bp
 from capacities import capacities_bp
 from stock_snapshot import stock_snapshot_bp
 from stores import stores_bp
+from user import auth_bp
+from flask_login import LoginManager
 load_dotenv()
 
 app = Flask(__name__)
@@ -17,11 +19,19 @@ db.init_app(app)
 migrate = Migrate(app, db)
 CORS(app)
 
+login_manager = LoginManager()
+login_manager.init_app(app)
+
+@login_manager.user_loader
+def load_user(user_id):
+    return db.session.get(User, int(user_id))
+
+
 app.register_blueprint(transfers_bp)
 app.register_blueprint(capacities_bp)
 app.register_blueprint(stock_snapshot_bp)
 app.register_blueprint(stores_bp)
-
+app.register_blueprint(auth_bp)
 
 
 @app.route("/")

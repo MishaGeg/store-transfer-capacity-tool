@@ -7,3 +7,4 @@ DateTime==6.0
 openpyxl==3.1.5
 flask-cors==6.0.5
 alembic==1.19.1
+Flask-Login==0.6.3
