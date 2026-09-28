@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, jsonify
 from dotenv import load_dotenv
 import os
 from models import db, User
@@ -26,6 +26,9 @@ login_manager.init_app(app)
 def load_user(user_id):
     return db.session.get(User, int(user_id))
 
+@login_manager.unauthorized_handler
+def unauthorized():
+    return jsonify({"error": "authentication required"}), 401
 
 app.register_blueprint(transfers_bp)
 app.register_blueprint(capacities_bp)

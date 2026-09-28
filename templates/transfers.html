@@ -929,6 +929,11 @@
             const response =
                 await fetch(url, options);
 
+            if (response.status === 401) {
+                window.location.href = "/login";
+                throw new Error("Not authenticated");
+            }
+
             let data = null;
 
             try {
@@ -2627,6 +2632,23 @@
             }
 
 
+
+            async function logout() {
+
+                try {
+                    await apiFetch("/logout", { method: "POST" });
+                }
+                catch (_) {
+                    /*
+                     * Even if the request fails, send the user to the
+                     * login page. If the session is still valid, the
+                     * next protected call will tell them.
+                     */
+                }
+
+                window.location.href = "/login";
+            }
+
             /* ============================================================
                COUNT ACTIVE ROW TRANSFERS
                ============================================================ */
@@ -2998,7 +3020,13 @@
                                 </button>
 
                             </div>
-
+                            <button
+                                type="button"
+                                className="action-btn"
+                                onClick={logout}
+                            >
+                                გასვლა
+                            </button>
 
                             <div className="toolbar-right">
 
