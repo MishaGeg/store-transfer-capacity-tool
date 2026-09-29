@@ -17,7 +17,7 @@ STORES = [
     ("ShoeGal_10 Vazha", "store"),
     ("ShoeGal_ Batu_Gamsax", "store"),
     ("ICR_Shoes_2", "store"),
-    ("ICR_Shoes_TB_Galery", "store"),
+    ("ICR_Shoes TB_Galery", "store"),
 ]
 
 def seed_stores():

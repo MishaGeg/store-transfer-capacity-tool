@@ -1,12 +1,14 @@
 from flask import Blueprint, request, jsonify
 from models import PlannedTransfer, db
 from datetime import datetime
+from flask_login import login_required
 
 transfers_bp = Blueprint("transfers", __name__)
 
 @transfers_bp.route("/transfers", methods=["POST"])
+@login_required
 def create_transfers():
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     transfer_list = data.get("transfers")
     if not isinstance(transfer_list, list):
         return jsonify({"error": "transfers must be a list"}), 400
@@ -52,6 +54,7 @@ def create_transfers():
 
 
 @transfers_bp.route("/transfers/<int:id>", methods=["DELETE"])
+@login_required
 def delete_transfer(id):
     result = PlannedTransfer.query.filter_by(id = id).first()
     if not result:

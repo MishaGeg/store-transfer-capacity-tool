@@ -426,13 +426,42 @@
         let capacitiesData = {};
         let currentEdit = null;
 
-        const API_BASE = 'http://localhost:5000';
+        // The page is served by Flask, so relative paths are
+        // same-origin and the session cookie is sent automatically.
+        // No hardcoded host needed.
+
+        // Shared fetch wrapper, used by every call in this file.
+        // Redirects to /login on 401, so an expired or missing
+        // session always sends the user to log in instead of
+        // silently showing "No capacity data available."
+        async function apiFetch(url, options = {}) {
+            const response = await fetch(url, options);
+
+            if (response.status === 401) {
+                window.location.href = '/login';
+                throw new Error('Not authenticated');
+            }
+
+            let data = null;
+            try {
+                data = await response.json();
+            } catch (err) {
+                if (!response.ok) {
+                    throw new Error(`Request failed: ${response.status}`);
+                }
+                throw new Error('Server returned an invalid response.');
+            }
+
+            if (!response.ok) {
+                throw new Error(data?.error || `Request failed: ${response.status}`);
+            }
+
+            return data;
+        }
 
         async function fetchCapacities() {
             try {
-                const response = await fetch(`${API_BASE}/capacity-groups`);
-                if (!response.ok) throw new Error('Failed to fetch capacity groups');
-                return await response.json();
+                return await apiFetch('/capacity-groups');
             } catch (err) {
                 return {};
             }
@@ -525,8 +554,8 @@
             }
 
             try {
-                const response = await fetch(
-                    `${API_BASE}/capacities/${storeId}/${encodeURIComponent(brand)}`,
+                await apiFetch(
+                    `/capacities/${storeId}/${encodeURIComponent(brand)}`,
                     {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
@@ -534,18 +563,12 @@
                     }
                 );
 
-                if (!response.ok) {
-                    const errData = await response.json();
-                    errorMsg.textContent = errData.error || 'Update failed.';
-                    return;
-                }
-
                 closeModal();
                 const updated = await fetchCapacities();
                 capacitiesData = updated;
                 renderStores(updated);
             } catch (err) {
-                errorMsg.textContent = 'Network error. Try again.';
+                errorMsg.textContent = err.message || 'Network error. Try again.';
             }
         }
 

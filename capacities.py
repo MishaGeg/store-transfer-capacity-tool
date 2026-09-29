@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from models import BrandCapacity, db, Store, PlannedTransfer, StockSnapshot
 from datetime import datetime, timedelta
-from sqlalchemy import func
+from flask_login import login_required
 
 capacities_bp = Blueprint("capacities", __name__)
 
@@ -11,6 +11,7 @@ BRAND_GROUPS = {
 
 
 @capacities_bp.route("/capacities", methods=["GET"])
+@login_required
 def show_capacities():
     result = db.session.query(BrandCapacity, Store).join(Store, BrandCapacity.store_id == Store.id).all()
     results = {}
@@ -26,6 +27,7 @@ def show_capacities():
     return jsonify(results)
 
 @capacities_bp.route("/capacity-groups", methods=["GET"])
+@login_required
 def show_capacity_groups():
     result = db.session.query(BrandCapacity, Store).join(Store, BrandCapacity.store_id == Store.id).all()
     results = {}
@@ -37,13 +39,16 @@ def show_capacity_groups():
     return jsonify(results)            
 
 @capacities_bp.route("/capacities/<int:store_id>/<brand>", methods =["PUT"])
+@login_required
 def update_capacities(store_id, brand):
     result = BrandCapacity.query.filter_by(store_id = store_id, brand = brand).first()
     if not result:
         return jsonify({"error": "wrong store/brand name"}), 404
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     try:
-        new_capacity = int(data["capacity"])
+        new_capacity = int(data.get("capacity"))
+        if new_capacity < 0:
+            return jsonify({"error": "capacity cannot be negative"}), 400
     except(TypeError, ValueError):
         return jsonify({"error": "incorrect data"}), 400  
     result.capacity = new_capacity
@@ -51,6 +56,7 @@ def update_capacities(store_id, brand):
     return jsonify({"brand": result.brand, "capacity": result.capacity}), 200
 
 @capacities_bp.route("/capacity-check", methods=["GET"])
+@login_required
 def check_capacity():
     result = db.session.query(BrandCapacity, Store).join(Store, BrandCapacity.store_id == Store.id).all()
     free_space = {}
@@ -78,7 +84,7 @@ def check_capacity():
         current_stock = 0
         for row in current_stock_rows:
                 current_stock += row.quantity
-      
+        print(current_stock, name)
         if name not in free_space:
             free_space[name] = {}
         for b in brand:    

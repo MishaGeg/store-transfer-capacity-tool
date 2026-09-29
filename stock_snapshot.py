@@ -8,10 +8,11 @@ from flask_login import login_required
 CAT_1_COL = 0
 BRAND_1_COL = 3
 ST_COL = 4
-QTY_COL = 5
+SEX_COL = 5
+QTY_COL = 6
+
 
 stock_snapshot_bp = Blueprint("snapshot", __name__)
-
 
 
 @stock_snapshot_bp.route("/import-stock", methods=["GET", "POST"])
@@ -38,7 +39,7 @@ def current_stock():
         "brand": snapshot.brand , 
         "category": snapshot.category, 
         "quantity": snapshot.quantity,
-        "store_name": store.name
+        "store_name": store.name,
         }
     for snapshot, store in db.session.query(StockSnapshot, Store).join(Store, StockSnapshot.store_id == Store.id).all()]
     return jsonify(result)
@@ -60,7 +61,10 @@ def validate_stock_data(sheet, store_lookup):
         brand = row[BRAND_1_COL]
         st_name = row[ST_COL]
         quantity = row[QTY_COL]
+        sex = row[SEX_COL]
         if category is None or str(category).strip().upper() not in {"FOOTWEAR", "SLIPPERS"}:
+            continue
+        if sex is None or str(sex).strip().upper() != "ADULTS":
             continue
         if quantity is None or str(quantity).strip() == "":
             skipped.append({"row": row_num, "reason": "empty quantity"})
@@ -71,7 +75,7 @@ def validate_stock_data(sheet, store_lookup):
             continue
         if brand is None or str(brand).strip() == "":
             skipped.append({"row": row_num, "reason": "empty brand"})
-            continue
+            continue     
         try:
             key = (store_id, str(brand).strip(), str(category).strip().upper())
             totals[key] = totals.get(key, 0) + int(quantity)
