@@ -26,7 +26,7 @@ def import_stock():
             return jsonify({"error": str(e)}), 400
         processed, skipped, totals = validate_stock_data(sheet, store_lookup)
         write_stock_data(totals)
-        return jsonify({"processed": processed, "skipped": skipped})
+        return jsonify({"ატვირთული": processed, "გამოტოვებული": skipped})
     return render_template("import.html")
 
 
@@ -46,7 +46,7 @@ def current_stock():
 
 def read_stock_data(file):
     if not file or not file.filename.endswith(".xlsx"):
-        raise ValueError("Please upload a .xlsx file")
+        raise ValueError("ფაილი უნდა იყოს .xlsx ფორმატში")
     workbook = load_workbook(file, data_only=True)
     sheet = workbook.active
     store_lookup = {store.name: store.id for store in Store.query.all()}
@@ -67,14 +67,14 @@ def validate_stock_data(sheet, store_lookup):
         if sex is None or str(sex).strip().upper() != "ADULTS":
             continue
         if quantity is None or str(quantity).strip() == "":
-            skipped.append({"row": row_num, "reason": "empty quantity"})
+            skipped.append({"row": row_num, "მიზეზი": "ცარიელი რაოდენობა"})
             continue
         store_id = store_lookup.get(str(st_name).strip() if st_name else None)
         if store_id is None:
-            skipped.append({"row": row_num, "reason": f"unknown ST value: {st_name}"})
+            skipped.append({"row": row_num, "მიზეზი": f"არასწორი მაღაზია: {st_name}"})
             continue
         if brand is None or str(brand).strip() == "":
-            skipped.append({"row": row_num, "reason": "empty brand"})
+            skipped.append({"row": row_num, "მიზეზი": "ცარიელი ბრენდის დასახელება"})
             continue     
         try:
             key = (store_id, str(brand).strip(), str(category).strip().upper())

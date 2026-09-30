@@ -1,8 +1,49 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>ტევადობების რედაქტირება</title>
+
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Georgian:wght@400;500;600;700&display=swap');
+
+        :root {
+            --black: #111111;
+            --white: #ffffff;
+            --off-white: #fafaf9;
+            --g50: #f7f6f4;
+            --g100: #edece8;
+            --g200: #dddbd5;
+            --g300: #b8b6b0;
+            --g400: #8a8884;
+            --g500: #6b6966;
+            --g600: #4a4845;
+            --g700: #2d2c2a;
+
+            --accent: #c8102e;
+            --accent-dk: #a30d24;
+            --accent-light: #fef2f2;
+
+            --danger: #dc0000;
+            --danger-light: #ffe0e0;
+            --success: #1a6b35;
+            --success-light: #ecfdf5;
+
+            --font: "Noto Sans Georgian", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            --border: var(--g200);
+            --border-strong: var(--g300);
+            --surface: var(--white);
+            --surface-subtle: var(--g50);
+            --text: var(--g700);
+            --text-muted: var(--g500);
+            --radius-sm: 5px;
+            --radius-md: 7px;
+            --shadow-card: 0 1px 2px rgba(17, 17, 17, 0.035), 0 4px 12px rgba(17, 17, 17, 0.025);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -10,201 +51,209 @@
         }
 
         body {
-            font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
-            color: var(--text-primary, #172033);
+            font-family: var(--font);
+            color: var(--text);
             background: transparent;
             line-height: 1.45;
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
+        }
+
+        button,
+        input {
+            font: inherit;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        button:disabled {
+            opacity: .48;
+            cursor: not-allowed;
         }
 
         .container {
-            padding: 1.25rem 0 2rem;
+            width: 100%;
+            padding: 1rem 0 2rem;
+        }
+
+        .header-section {
+            margin-bottom: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.6rem;
         }
 
         h2 {
-            font-size: clamp(1.25rem, 2vw, 1.5rem);
-            font-weight: 650;
-            letter-spacing: -0.025em;
-            margin-bottom: 1.25rem;
-            color: var(--text-primary, #172033);
             display: flex;
             align-items: center;
-            gap: 0.65rem;
+            gap: .6rem;
+            color: var(--black);
+            font-size: clamp(1.2rem, 2vw, 1.45rem);
+            font-weight: 700;
+            letter-spacing: -.035em;
         }
 
         h2::before {
-            content: '';
-            width: 0.45rem;
-            height: 1.75rem;
-            border-radius: 99px;
-            background: var(--fill-accent, #2563eb);
-            box-shadow: 0 3px 10px color-mix(in srgb, var(--fill-accent, #2563eb) 30%, transparent);
+            content: "";
+            width: 3px;
+            height: 1.5rem;
+            flex: 0 0 auto;
+            border-radius: 2px;
+            background: var(--accent);
+        }
+
+        .action-btn {
+            padding: .42rem .7rem;
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-sm);
+            background: var(--white);
+            color: var(--text);
+            font-size: 11px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: background .15s ease, border-color .15s ease, color .15s ease, transform .1s ease;
+        }
+
+        .action-btn:hover:not(:disabled) {
+            background: var(--g50);
+        }
+
+        .action-btn:active:not(:disabled) {
+            transform: scale(.98);
         }
 
         .stores-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1rem;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+            gap: .75rem;
+            align-items: start;
         }
 
         .store-card {
-            background: var(--surface-2, #ffffff);
-            border: 1px solid var(--border, #e5e7eb);
-            border-radius: 16px;
-            padding: 1.1rem;
-            box-shadow: 0 2px 5px rgba(15, 23, 42, 0.03);
-            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-        }
-
-        .store-card:hover {
-            border-color: var(--border-strong, #cbd5e1);
-            box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08);
-            transform: translateY(-2px);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: .85rem .9rem;
+            box-shadow: var(--shadow-card);
         }
 
         .store-header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 0.85rem;
-            border-bottom: 1px solid var(--border, #e5e7eb);
-            padding: 0 0.2rem 0.8rem;
+            justify-content: space-between;
+            padding-bottom: .6rem;
+            margin-bottom: .6rem;
+            border-bottom: 1px solid var(--border);
         }
 
         .store-name {
-            font-weight: 650;
-            font-size: 0.95rem;
-            color: var(--text-primary, #172033);
-            letter-spacing: -0.01em;
+            min-width: 0;
+            overflow-wrap: anywhere;
+            font-weight: 700;
+            font-size: .85rem;
+            color: var(--black);
         }
 
         .store-name::before {
-            content: 'მაღაზია';
+            content: "მაღაზია";
             display: block;
-            margin-bottom: 0.18rem;
-            color: var(--text-secondary, #64748b);
-            font-size: 0.80rem;
+            margin-bottom: .15rem;
+            color: var(--text-muted);
+            font-size: .62rem;
             font-weight: 700;
-            letter-spacing: 0.08em;
+            letter-spacing: .075em;
             text-transform: uppercase;
         }
 
         .brands-list {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: .4rem;
         }
 
         .brand-row {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
+            grid-template-columns: minmax(0, 1fr) auto auto;
             align-items: center;
-            gap: 0.65rem;
-            font-size: 14px;
-            padding: 0.75rem;
-            background: var(--surface-1, #f8fafc);
+            gap: .5rem;
+            padding: .45rem .6rem;
+            background: var(--g50);
             border: 1px solid transparent;
-            border-radius: var(--radius, 10px);
-            transition: background 0.2s ease, border-color 0.2s ease;
+            border-radius: var(--radius-sm);
+            transition: border-color .15s ease, background .15s ease;
         }
 
         .brand-row:hover {
-            background: color-mix(in srgb, var(--surface-1, #f8fafc) 72%, white);
-            border-color: var(--border, #e5e7eb);
+            border-color: var(--border);
+            background: var(--white);
         }
 
         .brand-info {
-            grid-column: 1 / -1;
             min-width: 0;
         }
 
         .brand-label {
-            color: var(--text-secondary, #64748b);
-            font-size: 0.67rem;
-            margin-bottom: 0.15rem;
+            color: var(--text-muted);
+            font-size: 8px;
             font-weight: 700;
-            letter-spacing: 0.06em;
+            letter-spacing: .075em;
             text-transform: uppercase;
+            margin-bottom: .05rem;
         }
 
         .brand-name {
-            color: var(--text-primary, #172033);
+            color: var(--text);
+            font-size: 11px;
             font-weight: 600;
+            overflow-wrap: anywhere;
         }
 
         .capacity-value {
-            color: var(--fill-accent, #2563eb);
-            background: color-mix(in srgb, var(--fill-accent, #2563eb) 10%, transparent);
-            border-radius: 99px;
-            padding: 0.32rem 0.5rem;
-            font-size: 0.8rem;
+            padding: .2rem .4rem;
+            border-radius: 4px;
+            background: #dcfce7;
+            color: #15803d;
+            font-size: 11px;
             font-weight: 700;
-            min-width: 3.25rem;
-            text-align: right;
+            text-align: center;
             white-space: nowrap;
-            justify-self: start;
+            font-variant-numeric: tabular-nums;
         }
 
-        .edit-btn {
-            background: transparent;
-            border: 1px solid var(--border-strong, #cbd5e1);
-            color: var(--text-primary, #172033);
-            padding: 0.38rem 0.55rem;
-            border-radius: var(--radius, 8px);
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.3rem;
-            font-size: 12px;
+        .row-edit-btn {
+            padding: .3rem .5rem;
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-sm);
+            background: var(--white);
+            color: var(--text);
+            font-size: 10px;
             font-weight: 600;
             white-space: nowrap;
-            transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
         }
 
-        .edit-btn:hover {
-            background: var(--fill-accent, #2563eb);
-            border-color: var(--fill-accent, #2563eb);
-            color: var(--on-accent, #ffffff);
+        .row-edit-btn:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: var(--white);
         }
 
-        .edit-btn:active {
-            transform: scale(0.98);
-        }
-
-        .manage-btn {
-            background: transparent;
-            border: 0.5px solid var(--border-strong);
-            color: var(--text-primary);
-            padding: 0.5rem 1rem;
-            border-radius: var(--radius);
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 1.5rem;
-            transition: background 0.2s;
-        }
-
-        .manage-btn:hover {
-            background: var(--surface-1);
-        }
-
-        .manage-btn:active {
-            transform: scale(0.98);
-        }
-
+        /* Modal styling matching system components */
         .modal-overlay {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(15, 23, 42, 0.52);
-            backdrop-filter: blur(4px);
+            inset: 0;
+            padding: 1rem;
+            background: rgba(17, 17, 17, 0.4);
+            backdrop-filter: blur(2px);
             z-index: 1000;
             align-items: center;
             justify-content: center;
-            min-height: 400px;
         }
 
         .modal-overlay.open {
@@ -212,35 +261,19 @@
         }
 
         .modal {
-            background: #ffffff;
-            border: 1px solid var(--border, #e5e7eb);
-            border-radius: 16px;
-            padding: 1.5rem;
-            width: 90%;
-            max-width: 500px;
-            max-height: 80vh;
-            overflow-y: auto;
-            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22), 0 4px 12px rgba(15, 23, 42, 0.08);
-            animation: modal-enter 0.2s ease-out;
-        }
-
-        @keyframes modal-enter {
-            from {
-                opacity: 0;
-                transform: translateY(8px) scale(0.98);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 1.15rem;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 10px 25px rgba(17, 17, 17, 0.1);
         }
 
         .modal-header {
-            font-size: 18px;
-            font-weight: 650;
-            letter-spacing: -0.02em;
-            margin-bottom: 1.5rem;
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -248,134 +281,81 @@
 
         .close-btn {
             background: transparent;
-            border: none;
-            color: var(--text-primary);
+            border: 0;
+            color: var(--text-muted);
             cursor: pointer;
-            font-size: 20px;
-            padding: 0;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            font-size: 1.2rem;
+            padding: .2rem;
+            line-height: 1;
         }
 
         .close-btn:hover {
-            color: var(--text-secondary);
+            color: var(--danger);
         }
 
         .form-group {
-            margin-bottom: 1.25rem;
+            margin-bottom: .8rem;
         }
 
         .form-group label {
             display: block;
-            font-size: 13px;
-            color: var(--text-secondary);
-            margin-bottom: 0.5rem;
-            font-weight: 500;
+            font-size: .68rem;
+            color: var(--text-muted);
+            margin-bottom: .3rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .06em;
         }
 
         .form-group input {
             width: 100%;
-            padding: 0.5rem 0.75rem;
-            border: 1px solid var(--border, #e5e7eb);
-            border-radius: var(--radius, 8px);
-            font-size: 14px;
-            background: var(--surface-1);
-            color: var(--text-primary);
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            height: 32px;
+            padding: .3rem .5rem;
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-sm);
+            background: var(--off-white);
+            color: var(--text);
+            font-size: 12px;
+            font-weight: 600;
         }
 
         .form-group input:focus {
             outline: none;
-            border-color: var(--border-strong);
-            box-shadow: 0 0 0 2px var(--bg-accent);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(200, 16, 46, .10);
+        }
+
+        .form-group input[readonly] {
+            background: var(--g100);
+            color: var(--text-muted);
+            cursor: not-allowed;
         }
 
         .error-msg {
-            color: var(--text-danger);
-            font-size: 12px;
-            margin-top: 0.25rem;
+            color: var(--danger);
+            font-size: 10px;
+            margin-top: .25rem;
         }
 
         .modal-footer {
             display: flex;
-            gap: 12px;
+            gap: .5rem;
             justify-content: flex-end;
-            margin-top: 1.5rem;
-            padding-top: 1rem;
-            border-top: 1px solid var(--border, #e5e7eb);
+            margin-top: 1rem;
+            padding-top: .75rem;
+            border-top: 1px solid var(--border);
         }
 
-        .btn-secondary {
-            background: transparent;
-            border: 0.5px solid var(--border-strong);
-            color: var(--text-primary);
-            padding: 0.5rem 1rem;
-            border-radius: var(--radius);
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            transition: background 0.2s;
-        }
-
-        .btn-secondary:hover {
-            background: var(--surface-1);
-        }
-
-        .btn-primary {
-            background: var(--fill-accent);
-            border: 0.5px solid var(--fill-accent);
-            color: var(--on-accent);
-            padding: 0.5rem 1rem;
-            border-radius: var(--radius);
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            transition: background 0.2s;
-        }
-
-        .btn-primary:hover {
-            background: var(--fill-accent-hover, #2563eb);
-        }
-
-        .btn-primary:active {
-            transform: scale(0.98);
-        }
-
-        .btn-primary:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .loading {
-            color: var(--text-secondary);
-            font-size: 14px;
-            text-align: center;
-            padding: 2rem;
-        }
-
+        .loading,
         .empty-state {
-            color: var(--text-secondary);
-            font-size: 14px;
+            grid-column: 1 / -1;
+            color: var(--text-muted);
+            font-size: 13px;
             text-align: center;
             padding: 2rem;
-        }
-
-        @media (max-width: 480px) {
-            .container {
-                padding-top: 0.75rem;
-            }
-
-            .stores-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .modal {
-                width: calc(100% - 1.5rem);
-                padding: 1.25rem;
-            }
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
         }
     </style>
 </head>
@@ -383,11 +363,13 @@
 <body>
 
     <div class="container">
-        <h2>მაღაზიების ტევადობები</h2>
-
+        <div class="header-section">
+            <h2>მაღაზიების ტევადობები</h2>
+            <a href="/transfers-page" class="action-btn">ტრანსფერებზე გადასვლა</a>
+        </div>
 
         <div id="storesContainer" class="stores-grid">
-            <div class="loading">Loading store data...</div>
+            <div class="loading">იტვირთება მონაცემები...</div>
         </div>
     </div>
 
@@ -400,13 +382,12 @@
 
             <div class="form-group">
                 <label>მაღაზია</label>
-                <input type="text" id="storeNameField" readonly
-                    style="background: var(--surface-0); cursor: not-allowed;">
+                <input type="text" id="storeNameField" readonly>
             </div>
 
             <div class="form-group">
                 <label>ბრენდი</label>
-                <input type="text" id="brandField" readonly style="background: var(--surface-0); cursor: not-allowed;">
+                <input type="text" id="brandField" readonly>
             </div>
 
             <div class="form-group">
@@ -416,8 +397,9 @@
             </div>
 
             <div class="modal-footer">
-                <button class="btn-secondary" id="cancelBtn">გაუქმება</button>
-                <button class="btn-primary" id="saveBtn">შენახვა</button>
+                <button class="action-btn" id="cancelBtn">გაუქმება</button>
+                <button class="action-btn primary" id="saveBtn"
+                    style="background: var(--accent); border-color: var(--accent); color: var(--white);">შენახვა</button>
             </div>
         </div>
     </div>
@@ -426,14 +408,6 @@
         let capacitiesData = {};
         let currentEdit = null;
 
-        // The page is served by Flask, so relative paths are
-        // same-origin and the session cookie is sent automatically.
-        // No hardcoded host needed.
-
-        // Shared fetch wrapper, used by every call in this file.
-        // Redirects to /login on 401, so an expired or missing
-        // session always sends the user to log in instead of
-        // silently showing "No capacity data available."
         async function apiFetch(url, options = {}) {
             const response = await fetch(url, options);
 
@@ -493,8 +467,8 @@
                 <div class="brand-name">${item.brand}</div>
               </div>
               <div class="capacity-value">${item.capacity}</div>
-              <button class="edit-btn" data-store-id="${storeId}" data-store="${storeName}" data-brand="${item.brand}" data-capacity="${item.capacity}">
-                <i class="ti ti-edit" style="font-size: 14px;" aria-hidden="true"></i> რედაქტირება
+              <button class="row-edit-btn edit-btn" data-store-id="${storeId}" data-store="${storeName}" data-brand="${item.brand}" data-capacity="${item.capacity}">
+                შეცვლა
               </button>
             </div>
           `).join('')}
@@ -579,7 +553,6 @@
         document.getElementById('capacityField').addEventListener('input', () => {
             document.getElementById('errorMsg').textContent = '';
         });
-
 
         (async () => {
             const data = await fetchCapacities();

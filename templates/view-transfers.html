@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transfers — View</title>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Georgian:wght@400;500;600;700&display=swap');
+
+        :root {
+            --black: #111111;
+            --white: #ffffff;
+            --off-white: #fafaf9;
+            --g50: #f7f6f4;
+            --g100: #edece8;
+            --g200: #dddbd5;
+            --g300: #b8b6b0;
+            --g400: #8a8884;
+            --g500: #6b6966;
+            --g600: #4a4845;
+            --g700: #2d2c2a;
+
+            --accent: #c8102e;
+            --accent-dk: #a30d24;
+            --accent-light: #fef2f2;
+
+            --danger: #dc0000;
+            --danger-light: #ffe0e0;
+            --success: #1a6b35;
+            --success-light: #ecfdf5;
+
+            --font: "Noto Sans Georgian", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            --border: var(--g200);
+            --border-strong: var(--g300);
+            --surface: var(--white);
+            --surface-subtle: var(--g50);
+            --text: var(--g700);
+            --text-muted: var(--g500);
+            --radius-sm: 5px;
+            --radius-md: 7px;
+            --shadow-card: 0 1px 2px rgba(17, 17, 17, 0.035), 0 4px 12px rgba(17, 17, 17, 0.025);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font);
+            color: var(--text);
+            background: transparent;
+            line-height: 1.45;
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
+        }
+
+        select {
+            font: inherit;
+        }
+
+        .container {
+            width: 100%;
+            padding: 1rem 0 2rem;
+        }
+
+        h2 {
+            display: flex;
+            align-items: center;
+            gap: .6rem;
+            margin-bottom: 1rem;
+            color: var(--black);
+            font-size: clamp(1.2rem, 2vw, 1.45rem);
+            font-weight: 700;
+            letter-spacing: -.035em;
+        }
+
+        h2::before {
+            content: "";
+            width: 3px;
+            height: 1.5rem;
+            flex: 0 0 auto;
+            border-radius: 2px;
+            background: var(--accent);
+        }
+
+        .toolbar-card,
+        .matrix-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-card);
+        }
+
+        .toolbar-card {
+            padding: .8rem .9rem;
+            margin-bottom: .6rem;
+        }
+
+        .matrix-card {
+            overflow: hidden;
+        }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            flex-wrap: wrap;
+        }
+
+        .toolbar-label {
+            color: var(--text-muted);
+            font-size: .66rem;
+            font-weight: 700;
+            letter-spacing: .075em;
+            text-transform: uppercase;
+        }
+
+        .store-select {
+            width: auto;
+            min-width: 220px;
+            padding: .42rem .6rem;
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-sm);
+            background: var(--off-white);
+            color: var(--text);
+            font-size: 12px;
+        }
+
+        .store-select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(200, 16, 46, .10);
+        }
+
+        .result-count {
+            margin-left: auto;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .table-scroll {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            border-right: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            padding: .55rem .7rem;
+            text-align: left;
+        }
+
+        th:last-child,
+        td:last-child {
+            border-right: 0;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: 0;
+        }
+
+        th {
+            background: var(--g50);
+            color: var(--text-muted);
+            font-size: .68rem;
+            font-weight: 700;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        td {
+            background: var(--surface);
+            color: var(--text);
+            font-size: 13px;
+        }
+
+        td.quantity {
+            font-weight: 600;
+        }
+
+        td.timestamp {
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .empty-state,
+        .loading {
+            padding: 2rem;
+            color: var(--text-muted);
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .status {
+            min-height: 18px;
+            margin: 0 0 .5rem;
+            font-size: 12px;
+        }
+
+        .status.error {
+            color: var(--danger);
+        }
+
+        @media (max-width: 700px) {
+            .container {
+                padding-top: .75rem;
+            }
+
+            .result-count {
+                margin-left: 0;
+                width: 100%;
+            }
+
+            .store-select {
+                min-width: 0;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h2>ტრანსფერები</h2>
+
+        <div class="toolbar-card">
+            <div class="toolbar">
+                <span class="toolbar-label">მაღაზია</span>
+
+                <select id="store-select" class="store-select">
+                    <option value="">ყველა ტრანსფერი</option>
+                </select>
+
+                <span id="result-count" class="result-count"></span>
+            </div>
+        </div>
+
+        <div id="status" class="status error"></div>
+
+        <div class="matrix-card">
+            <div class="table-scroll">
+                <table id="transfers-table" style="display:none;">
+                    <thead>
+                        <tr>
+                            <th>საიდან</th>
+                            <th>სად</th>
+                            <th>ბრენდი</th>
+                            <th>რაოდენობა</th>
+                            <th>გაგზავნის დრო</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transfers-body"></tbody>
+                </table>
+
+                <div id="loading" class="loading">იტვირთება...</div>
+                <div id="empty-state" class="empty-state" style="display:none;">
+                    ტრანსფერები ვერ მოიძებნა.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allTransfers = [];
+
+        async function fetchTransfers() {
+            const response = await fetch("/view-transfers");
+
+            if (!response.ok) {
+                throw new Error(`Request failed: ${response.status}`);
+            }
+
+            return await response.json();
+        }
+
+        function buildStoreOptions(transfers) {
+            const byId = new Map();
+
+            for (const t of transfers) {
+                if (!byId.has(t.from_store_id)) {
+                    byId.set(t.from_store_id, t.from_store_name);
+                }
+                if (!byId.has(t.to_store_id)) {
+                    byId.set(t.to_store_id, t.to_store_name);
+                }
+            }
+
+            return [...byId.entries()]
+                .map(([id, name]) => ({ id, name }))
+                .sort((a, b) => a.name.localeCompare(b.name));
+        }
+
+        function populateStoreSelect(options) {
+            const select = document.getElementById("store-select");
+
+            for (const store of options) {
+                const opt = document.createElement("option");
+                opt.value = store.id;
+                opt.textContent = store.name;
+                select.appendChild(opt);
+            }
+        }
+
+        const GEORGIAN_WEEKDAYS = [
+            "კვირა",
+            "ორშაბათი",
+            "სამშაბათი",
+            "ოთხშაბათი",
+            "ხუთშაბათი",
+            "პარასკევი",
+            "შაბათი"
+        ];
+
+        function formatTimestamp(value) {
+            const date = new Date(value.replace(" ", "T"));
+            if (Number.isNaN(date.getTime())) {
+                return value;
+            }
+
+            const weekday = GEORGIAN_WEEKDAYS[date.getDay()];
+
+            const datePart = date.toLocaleString("en-GB", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric"
+            });
+
+            const timePart = date.toLocaleString("en-GB", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false
+            });
+
+            return `${weekday}, ${datePart}, ${timePart}`;
+        }
+
+        function renderTransfers(transfers) {
+            const table = document.getElementById("transfers-table");
+            const body = document.getElementById("transfers-body");
+            const emptyState = document.getElementById("empty-state");
+            const resultCount = document.getElementById("result-count");
+
+            body.innerHTML = "";
+
+            if (!transfers.length) {
+                table.style.display = "none";
+                emptyState.style.display = "block";
+                resultCount.textContent = "";
+                return;
+            }
+
+            emptyState.style.display = "none";
+            table.style.display = "table";
+
+            for (const t of transfers) {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${t.from_store_name}</td>
+                    <td>${t.to_store_name}</td>
+                    <td>${t.brand}</td>
+                    <td class="quantity">${t.quantity}</td>
+                    <td class="timestamp">${formatTimestamp(t.submitted_at)}</td>
+                `;
+                body.appendChild(row);
+            }
+
+            resultCount.textContent = `${transfers.length} ტრანსფერი`;
+        }
+
+        function applyFilter() {
+            const select = document.getElementById("store-select");
+            const selectedId = select.value;
+
+            if (!selectedId) {
+                renderTransfers(allTransfers);
+                return;
+            }
+
+            const filtered = allTransfers.filter(
+                t => String(t.to_store_id) === selectedId
+            );
+
+            renderTransfers(filtered);
+        }
+
+        async function init() {
+            const loading = document.getElementById("loading");
+            const status = document.getElementById("status");
+
+            try {
+                allTransfers = await fetchTransfers();
+
+                const storeOptions = buildStoreOptions(allTransfers);
+                populateStoreSelect(storeOptions);
+
+                document.getElementById("store-select")
+                    .addEventListener("change", applyFilter);
+
+                renderTransfers(allTransfers);
+            } catch (err) {
+                status.textContent = `მონაცემების ჩატვირთვა ვერ მოხერხდა: ${err.message}`;
+            } finally {
+                loading.style.display = "none";
+            }
+        }
+
+        init();
+    </script>
+
+</body>
+
+</html>

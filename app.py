@@ -28,7 +28,7 @@ def load_user(user_id):
 
 @login_manager.unauthorized_handler
 def unauthorized():
-    return jsonify({"error": "authentication required"}), 401
+    return jsonify({"error": "გთხოვთ შეხვიდეთ სიტემაში"}), 401
 
 app.register_blueprint(transfers_bp)
 app.register_blueprint(capacities_bp)
@@ -49,6 +49,9 @@ def transfers_page():
 def edit_capacities():
     return render_template("edit-capacities.html")
 
+@app.route("/public-transfers")
+def public_transfers():
+    return render_template("view-transfers.html")
 
 
 if __name__ == "__main__":

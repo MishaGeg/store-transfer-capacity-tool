@@ -1,7 +1,9 @@
 from flask import Blueprint, request, jsonify
-from models import PlannedTransfer, db
+from models import PlannedTransfer, db, Store
 from datetime import datetime
 from flask_login import login_required
+from sqlalchemy.orm import aliased
+
 
 transfers_bp = Blueprint("transfers", __name__)
 
@@ -43,7 +45,7 @@ def create_transfers():
                 "id": s.id,
                 "brand": s.brand,
                 "quantity": s.quantity,
-                "submitted_at": s.submitted_at,
+                "submitted_at": s.submitted_at.strftime("%Y-%m-%d %H:%M:%S"),
                 "from_store_id": s.from_store_id,
                 "to_store_id": s.to_store_id
             }
@@ -70,11 +72,34 @@ def show_transfers():
             "id": s.id,
             "brand": s.brand, 
             "quantity": s.quantity,
-            "submitted_at": s.submitted_at,
+            "submitted_at": s.submitted_at.strftime("%Y-%m-%d %H:%M:%S"),
             "from_store_id": s.from_store_id,
             "to_store_id": s.to_store_id 
         } 
         for s in PlannedTransfer.query.all()
     ]
     return jsonify(transfers)
+
+@transfers_bp.route("/view-transfers", methods=["GET"])
+def view_transfers():
+    FromStore = aliased(Store)
+    ToStore = aliased(Store)
+    transfers = [
+            {
+                "id": s.id,
+                "brand": s.brand, 
+                "quantity": s.quantity,
+                "submitted_at": s.submitted_at.strftime("%Y-%m-%d %H:%M:%S"),
+                "from_store_name": f.name,
+                "to_store_name": t.name,
+                "from_store_id": s.from_store_id,
+                "to_store_id": s.to_store_id 
+            } 
+            for s, f, t in db.session.query(PlannedTransfer, FromStore, ToStore)
+            .join(FromStore,  PlannedTransfer.from_store_id == FromStore.id)
+            .join(ToStore,  PlannedTransfer.to_store_id == ToStore.id)
+            .all()
+    ]
+    return jsonify(transfers)    
+
 
