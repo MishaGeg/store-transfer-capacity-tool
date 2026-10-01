@@ -1,17 +1,198 @@
 <!DOCTYPE html>
-<html>
+<html lang="ka">
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Import Stock</title>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Georgian:wght@400;500;600;700&display=swap');
+
+        :root {
+            --black: #111111;
+            --white: #ffffff;
+            --off-white: #fafaf9;
+            --g50: #f7f6f4;
+            --g200: #dddbd5;
+            --g300: #b8b6b0;
+            --g500: #6b6966;
+            --g700: #2d2c2a;
+            --accent: #c8102e;
+            --font: "Noto Sans Georgian", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            --border: var(--g200);
+            --border-strong: var(--g300);
+            --text: var(--g700);
+            --text-muted: var(--g500);
+            --radius-sm: 5px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font);
+            color: var(--text);
+            line-height: 1.45;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        button,
+        input {
+            font: inherit;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        .container {
+            width: 100%;
+            padding: 1rem 1.25rem 2rem;
+        }
+
+        .nav {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            padding: .6rem 0;
+            margin-bottom: .75rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-spacer {
+            margin-left: auto;
+        }
+
+        .action-btn {
+            padding: .42rem .7rem;
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-sm);
+            background: var(--white);
+            color: var(--text);
+            font-size: 11px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .action-btn:hover {
+            background: var(--g50);
+        }
+
+        .action-btn.primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: var(--white);
+        }
+
+        .action-btn.current {
+            background: var(--black);
+            border-color: var(--black);
+            color: var(--white);
+            pointer-events: none;
+        }
+
+        h2 {
+            display: flex;
+            align-items: center;
+            gap: .6rem;
+            margin-bottom: .5rem;
+            color: var(--black);
+            font-size: clamp(1.2rem, 2vw, 1.45rem);
+            font-weight: 700;
+            letter-spacing: -.035em;
+        }
+
+        h2::before {
+            content: "";
+            width: 3px;
+            height: 1.5rem;
+            border-radius: 2px;
+            background: var(--accent);
+        }
+
+        .hint {
+            color: var(--text-muted);
+            font-size: 13px;
+            margin-bottom: 1rem;
+        }
+
+        form {
+            display: flex;
+            align-items: center;
+            gap: .6rem;
+            flex-wrap: wrap;
+        }
+
+        input[type="file"] {
+            padding: .35rem;
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-sm);
+            background: var(--off-white);
+            font-size: 12px;
+        }
+
+        .last-update {
+            margin-bottom: 1rem;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .last-update strong {
+            color: var(--text);
+        }
+    </style>
 </head>
 
 <body>
-    <h1>ნაშთის ფაილის ატვირთვა</h1>
-    <h2>გთხოვთ აირჩიოთ Brand_1, ST, Sex ფილტრები Stock Valuation რეპორტიდან</h2>
-    <form action="/import-stock" method="post" enctype="multipart/form-data">
-        <input type="file" name="file" accept=".xlsx">
-        <button type="submit">ატვირთვა</button>
-    </form>
+    <div class="container">
+        <nav class="nav">
+            <a href="/import-stock" class="action-btn current">ნაშთის განახლება</a>
+            <a href="/transfers-page" class="action-btn">ტრანსფერები</a>
+            <a href="/edit-capacities" class="action-btn">ტევადობები</a>
+            <button type="button" class="action-btn nav-spacer" id="logoutBtn">გასვლა</button>
+        </nav>
+
+        <h2>ნაშთის განახლება</h2>
+        <p class="hint">გთხოვთ აირჩიოთ Brand_1, ST, Sex ფილტრები Stock Valuation რეპორტიდან</p>
+        <p class="last-update">ბოლო განახლება: <strong id="lastUpdate">...</strong></p>
+        <form action="/import-stock" method="post" enctype="multipart/form-data">
+            <input type="file" name="file" accept=".xlsx">
+            <button type="submit" class="action-btn primary">ატვირთვა</button>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            try {
+                await fetch('/logout', { method: 'POST' });
+            } catch (_) {
+                // Redirect regardless; a still-valid session is caught by the next protected call.
+            }
+            window.location.href = '/login';
+        });
+
+        (async () => {
+            const label = document.getElementById('lastUpdate');
+            try {
+                const response = await fetch('/last-stock-update');
+                if (response.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
+                const data = await response.json();
+                label.textContent = data.last_updated || 'ჯერ არ ატვირთულა';
+            } catch (_) {
+                label.textContent = '—';
+            }
+        })();
+    </script>
 </body>
 
 </html>

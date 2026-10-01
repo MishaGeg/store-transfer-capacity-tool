@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, redirect, request
 from dotenv import load_dotenv
 import os
 from models import db, User
@@ -9,7 +9,7 @@ from capacities import capacities_bp
 from stock_snapshot import stock_snapshot_bp
 from stores import stores_bp
 from user import auth_bp
-from flask_login import LoginManager
+from flask_login import LoginManager, login_required
 load_dotenv()
 
 app = Flask(__name__)
@@ -28,6 +28,8 @@ def load_user(user_id):
 
 @login_manager.unauthorized_handler
 def unauthorized():
+    if request.accept_mimetypes.best == "text/html":
+        return redirect("/login")
     return jsonify({"error": "გთხოვთ შეხვიდეთ სიტემაში"}), 401
 
 app.register_blueprint(transfers_bp)
@@ -42,10 +44,12 @@ def home():
     return "HI"
 
 @app.route("/transfers-page")
+@login_required
 def transfers_page():
     return render_template("transfers.html")
 
 @app.route("/edit-capacities")
+@login_required
 def edit_capacities():
     return render_template("edit-capacities.html")
 

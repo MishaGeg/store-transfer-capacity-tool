@@ -78,12 +78,21 @@
             padding: 1rem 0 2rem;
         }
 
+        .nav {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            padding: .6rem 0;
+            margin-bottom: .75rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-spacer {
+            margin-left: auto;
+        }
+
         .header-section {
             margin-bottom: 1.25rem;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.6rem;
         }
 
         h2 {
@@ -126,6 +135,13 @@
 
         .action-btn:active:not(:disabled) {
             transform: scale(.98);
+        }
+
+        .action-btn.current {
+            background: var(--black);
+            border-color: var(--black);
+            color: var(--white);
+            pointer-events: none;
         }
 
         .stores-grid {
@@ -363,9 +379,15 @@
 <body>
 
     <div class="container">
+        <nav class="nav">
+            <a href="/import-stock" class="action-btn">ნაშთის განახლება</a>
+            <a href="/transfers-page" class="action-btn">ტრანსფერები</a>
+            <a href="/edit-capacities" class="action-btn current">ტევადობები</a>
+            <button type="button" class="action-btn nav-spacer" id="logoutBtn">გასვლა</button>
+        </nav>
+
         <div class="header-section">
             <h2>მაღაზიების ტევადობები</h2>
-            <a href="/transfers-page" class="action-btn">ტრანსფერებზე გადასვლა</a>
         </div>
 
         <div id="storesContainer" class="stores-grid">
@@ -431,6 +453,15 @@
             }
 
             return data;
+        }
+
+        async function logout() {
+            try {
+                await apiFetch('/logout', { method: 'POST' });
+            } catch (_) {
+                // Redirect regardless; a still-valid session is caught by the next protected call.
+            }
+            window.location.href = '/login';
         }
 
         async function fetchCapacities() {
@@ -546,6 +577,7 @@
             }
         }
 
+        document.getElementById('logoutBtn').addEventListener('click', logout);
         document.getElementById('closeBtn').addEventListener('click', closeModal);
         document.getElementById('cancelBtn').addEventListener('click', closeModal);
         document.getElementById('saveBtn').addEventListener('click', saveCapacity);

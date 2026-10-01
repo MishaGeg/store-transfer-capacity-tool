@@ -82,12 +82,18 @@ def check_capacity():
             StockSnapshot.store_id == store_id, StockSnapshot.brand.in_(brand), StockSnapshot.category == "FOOTWEAR"
         ).all()
         current_stock = 0
+        snapshot_date = ""
         for row in current_stock_rows:
                 current_stock += row.quantity
+                if row.snapshot_date:
+                    snapshot_date = row.snapshot_date.strftime("%Y-%m-%d %H:%M:%S")
         if name not in free_space:
-            free_space[name] = {}
+            free_space[name] = {
+                "snapshot_date": snapshot_date,
+                "brands": {}
+            }
         for b in brand:    
-            free_space[name][b] = capacity - current_stock - current_transfers
+            free_space[name][b] = capacity - current_stock - current_transfers   
     return jsonify(free_space)        
 
 

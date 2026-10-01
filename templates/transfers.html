@@ -59,6 +59,8 @@
             text-rendering: optimizeLegibility;
         }
 
+
+
         button,
         input,
         select {
@@ -77,6 +79,26 @@
         .container {
             width: 100%;
             padding: 1rem 0 2rem;
+        }
+
+        .nav {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            padding: .6rem 0;
+            margin-bottom: .75rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-spacer {
+            margin-left: auto;
+        }
+
+        .action-btn.current {
+            background: var(--black);
+            border-color: var(--black);
+            color: var(--white);
+            pointer-events: none;
         }
 
         h2 {
@@ -169,6 +191,10 @@
             color: var(--text);
             font-size: 11px;
             font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             transition: background .15s ease, border-color .15s ease, color .15s ease, transform .1s ease;
         }
 
@@ -189,6 +215,13 @@
         .action-btn.primary:hover:not(:disabled) {
             background: var(--accent-dk);
             border-color: var(--accent-dk);
+        }
+
+        .action-btn.current {
+            background: var(--black);
+            border-color: var(--black);
+            color: var(--white);
+            pointer-events: none;
         }
 
         .status {
@@ -2805,6 +2838,12 @@
             return (
 
                 <div className="container">
+                    <nav className="nav">
+                        <a href="/import-stock" className="action-btn">ნაშთის განახლება</a>
+                        <a href="/transfers-page" className="action-btn current">ტრანსფერები</a>
+                        <a href="/edit-capacities" className="action-btn">ტევადობები</a>
+                        <button type="button" className="action-btn nav-spacer" onClick={logout}>გასვლა</button>
+                    </nav>
 
                     <h2>
                         ტრანსფერები
@@ -2874,39 +2913,9 @@
                                 </select>
 
 
-                                <button
-                                    type="button"
-                                    className="action-btn"
-
-                                    onClick={() =>
-                                        setShowOrder(
-                                            value => !value
-                                        )
-                                    }
-                                >
-                                    {
-                                        showOrder
-                                            ? "მაღაზიების წყობის დამალვა"
-                                            : "მაღაზიების წყობის ჩვენება"
-                                    }
-                                </button>
-
-                                <button
-                                    type="button"
-                                    className="action-btn"
-                                    onClick={() => window.location.href = '/edit-capacities'}
-                                >
-                                    ტევადობების რედაქტირება
-                                </button>
 
                             </div>
-                            <button
-                                type="button"
-                                className="action-btn"
-                                onClick={logout}
-                            >
-                                გასვლა
-                            </button>
+
 
                             <div className="toolbar-right">
 

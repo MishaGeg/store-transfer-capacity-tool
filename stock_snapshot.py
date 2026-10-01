@@ -4,6 +4,8 @@ from openpyxl import load_workbook
 from models import  Store
 from flask import Blueprint, request, render_template, jsonify
 from flask_login import login_required
+from sqlalchemy import func
+
 
 CAT_1_COL = 0
 BRAND_1_COL = 3
@@ -14,6 +16,13 @@ QTY_COL = 6
 
 stock_snapshot_bp = Blueprint("snapshot", __name__)
 
+@stock_snapshot_bp.route("/last-stock-update")
+@login_required
+def last_stock_update():
+    latest = db.session.query(func.max(StockSnapshot.snapshot_date)).scalar()
+    return jsonify({
+        "last_updated": latest.strftime("%d.%m.%Y %H:%M") if latest else None
+    })
 
 @stock_snapshot_bp.route("/import-stock", methods=["GET", "POST"])
 @login_required
