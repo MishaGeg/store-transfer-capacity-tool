@@ -35,7 +35,7 @@ def import_stock():
             return jsonify({"error": str(e)}), 400
         processed, skipped, totals = validate_stock_data(sheet, store_lookup)
         write_stock_data(totals)
-        return jsonify({"ატვირთული": processed, "გამოტოვებული": skipped})
+        return jsonify({"processed": processed, "skipped": skipped})
     return render_template("import.html")
 
 
@@ -76,20 +76,20 @@ def validate_stock_data(sheet, store_lookup):
         if sex is None or str(sex).strip().upper() != "ADULTS":
             continue
         if quantity is None or str(quantity).strip() == "":
-            skipped.append({"row": row_num, "მიზეზი": "ცარიელი რაოდენობა"})
+            skipped.append({"row": row_num, "reason": "ცარიელი რაოდენობა"})
             continue
         store_id = store_lookup.get(str(st_name).strip() if st_name else None)
         if store_id is None:
-            skipped.append({"row": row_num, "მიზეზი": f"არასწორი მაღაზია: {st_name}"})
+            skipped.append({"row": row_num, "reason": f"არასწორი მაღაზია: {st_name}"})
             continue
         if brand is None or str(brand).strip() == "":
-            skipped.append({"row": row_num, "მიზეზი": "ცარიელი ბრენდის დასახელება"})
+            skipped.append({"row": row_num, "reason": "ცარიელი ბრენდის დასახელება"})
             continue     
         try:
             key = (store_id, str(brand).strip(), str(category).strip().upper())
             totals[key] = totals.get(key, 0) + int(quantity)
         except (TypeError, ValueError):
-            skipped.append({"row": row_num, "reason": "quantity number error"})
+            skipped.append({"row": row_num, "reason": "არასწორი რაოდენობა"})
             continue
         processed += 1
     return(processed, skipped, totals)

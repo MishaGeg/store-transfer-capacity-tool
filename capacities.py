@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, render_template
 from models import BrandCapacity, db, Store, PlannedTransfer, StockSnapshot
 from datetime import datetime, timedelta
 from flask_login import login_required
@@ -8,6 +8,12 @@ capacities_bp = Blueprint("capacities", __name__)
 BRAND_GROUPS = {
     "ECCOGEOXSTUDIO": ["ECCO", "GEOX", "STUDIO"]
 }
+
+
+@capacities_bp.route("/edit-capacities")
+@login_required
+def edit_capacities():
+    return render_template("edit-capacities.html")
 
 
 @capacities_bp.route("/capacities", methods=["GET"])

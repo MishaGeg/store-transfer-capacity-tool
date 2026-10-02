@@ -147,6 +147,37 @@
         .last-update strong {
             color: var(--text);
         }
+
+        .result {
+            margin-top: 1rem;
+            font-size: 13px;
+        }
+
+        .result-summary {
+            font-weight: 600;
+            color: var(--black);
+        }
+
+        .result-error {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .result details {
+            margin-top: .5rem;
+        }
+
+        .result summary {
+            cursor: pointer;
+            color: var(--text-muted);
+        }
+
+        .skip-line {
+            margin-top: .3rem;
+            padding-left: .75rem;
+            border-left: 2px solid var(--border-strong);
+            overflow-wrap: anywhere;
+        }
     </style>
 </head>
 
@@ -162,10 +193,12 @@
         <h2>ნაშთის განახლება</h2>
         <p class="hint">გთხოვთ აირჩიოთ Brand_1, ST, Sex ფილტრები Stock Valuation რეპორტიდან</p>
         <p class="last-update">ბოლო განახლება: <strong id="lastUpdate">...</strong></p>
-        <form action="/import-stock" method="post" enctype="multipart/form-data">
+
+        <form id="importForm" form action="/import-stock" method="post" enctype="multipart/form-data">
             <input type="file" name="file" accept=".xlsx">
             <button type="submit" class="action-btn primary">ატვირთვა</button>
         </form>
+        <div class="result" id="result"></div>
     </div>
 
     <script>
@@ -178,7 +211,11 @@
             window.location.href = '/login';
         });
 
-        (async () => {
+        const form = document.getElementById('importForm');
+        const result = document.getElementById('result');
+        const submitBtn = form.querySelector('button[type="submit"]');
+
+        async function loadLastUpdate() {
             const label = document.getElementById('lastUpdate');
             try {
                 const response = await fetch('/last-stock-update');
@@ -191,7 +228,74 @@
             } catch (_) {
                 label.textContent = '—';
             }
-        })();
+        }
+
+        function groupByReason(skipped) {
+            const groups = new Map();
+            for (const item of skipped) {
+                if (!groups.has(item.reason)) groups.set(item.reason, []);
+                groups.get(item.reason).push(item.row);
+            }
+            return groups;
+        }
+
+        function showError(message) {
+            result.replaceChildren();
+            const p = document.createElement('p');
+            p.className = 'result-error';
+            p.textContent = message;
+            result.append(p);
+        }
+
+        function renderResult(data) {
+            result.replaceChildren();
+
+            const summary = document.createElement('p');
+            summary.className = 'result-summary';
+            summary.textContent = `ატვირთულია: ${data.processed} · გამოტოვებულია: ${data.skipped.length}`;
+            result.append(summary);
+
+            if (data.skipped.length === 0) return;
+
+            const details = document.createElement('details');
+            const title = document.createElement('summary');
+            title.textContent = 'გამოტოვებული მწკრივები';
+            details.append(title);
+
+            for (const [reason, rows] of groupByReason(data.skipped)) {
+                const line = document.createElement('p');
+                line.className = 'skip-line';
+                line.textContent = `${reason} (${rows.length}): მწკრივი ${rows.join(', ')}`;
+                details.append(line);
+            }
+            result.append(details);
+        }
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            submitBtn.disabled = true;
+            result.textContent = '...';
+            try {
+                const response = await fetch('/import-stock', { method: 'POST', body: new FormData(form) });
+                if (response.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
+                const data = await response.json();
+                if (!response.ok) {
+                    showError(data.error || 'შეცდომა');
+                    return;
+                }
+                renderResult(data);
+                loadLastUpdate();
+            } catch (_) {
+                showError('სერვერთან კავშირი ვერ დამყარდა');
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+
+        loadLastUpdate();
     </script>
 </body>
 

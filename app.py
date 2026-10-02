@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, redirect, request
+from flask import Flask, jsonify, redirect, request
 from dotenv import load_dotenv
 import os
 from models import db, User
@@ -9,7 +9,7 @@ from capacities import capacities_bp
 from stock_snapshot import stock_snapshot_bp
 from stores import stores_bp
 from user import auth_bp
-from flask_login import LoginManager, login_required
+from flask_login import LoginManager
 load_dotenv()
 
 app = Flask(__name__)
@@ -42,20 +42,6 @@ app.register_blueprint(auth_bp)
 @app.route("/")
 def home():
     return "HI"
-
-@app.route("/transfers-page")
-@login_required
-def transfers_page():
-    return render_template("transfers.html")
-
-@app.route("/edit-capacities")
-@login_required
-def edit_capacities():
-    return render_template("edit-capacities.html")
-
-@app.route("/public-transfers")
-def public_transfers():
-    return render_template("view-transfers.html")
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, render_template
 from models import PlannedTransfer, db, Store
 from datetime import datetime
 from flask_login import login_required
@@ -6,6 +6,16 @@ from sqlalchemy.orm import aliased
 
 
 transfers_bp = Blueprint("transfers", __name__)
+
+@transfers_bp.route("/transfers-page")
+@login_required
+def transfers_page():
+    return render_template("transfers.html")
+
+@transfers_bp.route("/public-transfers")
+def public_transfers():
+    return render_template("view-transfers.html")
+
 
 @transfers_bp.route("/transfers", methods=["POST"])
 @login_required
