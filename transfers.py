@@ -16,7 +16,6 @@ def transfers_page():
 def public_transfers():
     return render_template("view-transfers.html")
 
-
 @transfers_bp.route("/transfers", methods=["POST"])
 @login_required
 def create_transfers():
@@ -26,7 +25,21 @@ def create_transfers():
         return jsonify({"error": "transfers must be a list"}), 400
     errors = []
     successful_transfers = []
+    required = ("brand", "quantity", "from_store_id", "to_store_id")
     for row_num, t in enumerate(transfer_list):
+        if not isinstance(t, dict):
+            errors.append({"index": row_num, "error": "row must be an object"})
+            continue
+        missing = False
+        for key in required:
+            if key not in t:
+                missing = True
+        if missing:
+            errors.append({"index": row_num, "error": "missing data"})
+            continue
+        if not isinstance(t["quantity"], int) or isinstance(t["quantity"], bool):
+            errors.append({"index": row_num, "error": "quantity must be an integer"})
+            continue
         if t["quantity"] <= 0 or t["from_store_id"] == t["to_store_id"]:
             errors.append({"index": row_num, "error": "quantity must be > 0 or from/to stores must differ"})
             continue
@@ -76,6 +89,7 @@ def delete_transfer(id):
     return jsonify({"deleted_id": id, "status": "success"}), 200
 
 @transfers_bp.route("/transfers", methods = ["GET"])
+@login_required
 def show_transfers():
     transfers = [
         {
