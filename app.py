@@ -15,6 +15,7 @@ load_dotenv()
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY")
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
 db.init_app(app)
 migrate = Migrate(app, db)
 CORS(app)
@@ -28,7 +29,7 @@ def load_user(user_id):
 
 @login_manager.unauthorized_handler
 def unauthorized():
-    if request.accept_mimetypes.best == "text/html":
+    if request.accept_mimetypes.best_match(["application/json", "text/html"]) == "text/html":
         return redirect("/login")
     return jsonify({"error": "გთხოვთ შეხვიდეთ სიტემაში"}), 401
 
