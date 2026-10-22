@@ -48,15 +48,27 @@ def test_capacity_check_free_space(logged_in_client):
     assert response.status_code == 200
     assert response.get_json()["tostore"]["ECCO"] == 4000
 
-    
+
+def test_capacity_endpoints_expand_groups_and_update_value(logged_in_client):
+    store = add_store("city store")
+    add_brand_capacity(store, "ECCOGEOXSTUDIO", 100)
+
+    capacities = logged_in_client.get("/capacities").get_json()
+    assert capacities["city store"]["brands"] == [
+        {"brand": "ECCO", "capacity": 100},
+        {"brand": "GEOX", "capacity": 100},
+        {"brand": "STUDIO", "capacity": 100},
+    ]
+
+    response = logged_in_client.put(f"/capacities/{store.id}/ECCOGEOXSTUDIO", json={"capacity": 125})
+    assert response.status_code == 200
+    assert response.get_json() == {"brand": "ECCOGEOXSTUDIO", "capacity": 125}
 
 
+def test_capacity_update_rejects_invalid_values(logged_in_client):
+    store = add_store("city store")
+    add_brand_capacity(store, "ECCO", 100)
 
-
-
-
-
-
-  
-
-    
+    assert logged_in_client.put(f"/capacities/{store.id}/ECCO", json={"capacity": -1}).status_code == 400
+    assert logged_in_client.put(f"/capacities/{store.id}/ECCO", json={"capacity": "many"}).status_code == 400
+    assert logged_in_client.put(f"/capacities/{store.id}/GEOX", json={"capacity": 10}).status_code == 404
