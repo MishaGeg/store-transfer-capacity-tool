@@ -3,7 +3,6 @@ Flask-SQLAlchemy==3.1.1
 python-dotenv==1.2.2
 psycopg[binary]==3.3.4
 Flask-Migrate==4.1.0
-DateTime==6.0
 openpyxl==3.1.5
 flask-cors==6.0.5
 alembic==1.19.1

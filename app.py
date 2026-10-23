@@ -31,7 +31,11 @@ def load_user(user_id):
 def unauthorized():
     if request.accept_mimetypes.best_match(["application/json", "text/html"]) == "text/html":
         return redirect("/login")
-    return jsonify({"error": "გთხოვთ შეხვიდეთ სიტემაში"}), 401
+    return jsonify({"error": "გთხოვთ შეხვიდეთ სისტემაში"}), 401
+
+@app.errorhandler(413)
+def too_large(error):
+    return jsonify({"error": "ფაილის ზომა აჭარბებს ლიმიტს"}), 413
 
 app.register_blueprint(transfers_bp)
 app.register_blueprint(capacities_bp)
