@@ -35,6 +35,7 @@ class StockSnapshot(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     category = db.Column(db.String(20), nullable=False)
+    segment = db.Column(db.String(10), nullable=False, default="ADULTS")
     quantity = db.Column(db.Integer, nullable=False)
     brand = db.Column(db.String(50), nullable=False)
     snapshot_date = db.Column(db.DateTime, nullable=False)
@@ -43,7 +44,8 @@ class StockSnapshot(db.Model):
 
 
     __table_args__ = (
-        db.UniqueConstraint("store_id", "brand", "category", name="unique_stock_snapshot_store_brand_category"),
+        db.CheckConstraint("segment IN ('ADULTS', 'KIDS')", name="check_stock_snapshot_segment"),
+        db.UniqueConstraint("store_id", "brand", "category", "segment", name="unique_stock_snapshot_store_brand_category_segment"),
         )
 
 class BrandCapacity(db.Model):
@@ -52,11 +54,13 @@ class BrandCapacity(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     brand = db.Column(db.String(50), nullable=False)
     capacity = db.Column(db.Integer, nullable=False)
+    segment = db.Column(db.String(10), nullable=False, default="ADULTS")
 
     store_id = db.Column(db.Integer, db.ForeignKey("stores.id"), nullable=False)
 
     __table_args__ = (
-            db.UniqueConstraint("store_id", "brand", name="unique_brand_capacity_store_id_brand"),
+            db.CheckConstraint("segment IN ('ADULTS', 'KIDS')", name="check_capacity_segment"),
+            db.UniqueConstraint("store_id", "brand", "segment", name="unique_brand_capacity_store_id_brand_segment"),
             )
 
 class PlannedTransfer(db.Model):
@@ -65,6 +69,7 @@ class PlannedTransfer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     brand = db.Column(db.String(50), nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
+    segment = db.Column(db.String(10), nullable=False, default="ADULTS")
     submitted_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
 
     from_store_id = db.Column(db.Integer, db.ForeignKey("stores.id"), nullable=False)
@@ -73,4 +78,5 @@ class PlannedTransfer(db.Model):
     __table_args__ = (
         db.CheckConstraint("from_store_id != to_store_id", name="ck_transfer_different_stores"),
         db.CheckConstraint("quantity > 0", name="ck_transfer_positive_quantity"),
-        )           
+        db.CheckConstraint("segment IN ('ADULTS', 'KIDS')", name="check_transfer_segment"),
+        )
