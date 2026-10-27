@@ -10,7 +10,7 @@ from sqlalchemy import func
 CAT_1_COL = 0
 BRAND_1_COL = 3
 ST_COL = 4
-SEX_COL = 5
+SEGMENT_COL = 5
 QTY_COL = 6
 
 
@@ -47,6 +47,7 @@ def current_stock():
         "store_id": snapshot.store_id, 
         "brand": snapshot.brand , 
         "category": snapshot.category, 
+        "segment": snapshot.segment,
         "quantity": snapshot.quantity,
         "store_name": store.name,
         }
@@ -70,10 +71,14 @@ def validate_stock_data(sheet, store_lookup):
         brand = row[BRAND_1_COL]
         st_name = row[ST_COL]
         quantity = row[QTY_COL]
-        sex = row[SEX_COL]
-        if category is None or str(category).strip().upper() not in {"FOOTWEAR", "SLIPPERS"}:
+        segment = row[SEGMENT_COL]
+        category = str(category).strip().upper() if category is not None else ""
+        segment = str(segment).strip().upper() if segment is not None else ""
+        if category not in {"FOOTWEAR", "SLIPPERS"}:
             continue
-        if sex is None or str(sex).strip().upper() != "ADULTS":
+        if segment not in {"ADULTS", "KIDS"}:
+            continue
+        if segment == "KIDS" and category != "FOOTWEAR":
             continue
         if quantity is None or str(quantity).strip() == "":
             skipped.append({"row": row_num, "reason": "ცარიელი რაოდენობა"})
@@ -86,7 +91,7 @@ def validate_stock_data(sheet, store_lookup):
             skipped.append({"row": row_num, "reason": "ცარიელი ბრენდის დასახელება"})
             continue     
         try:
-            key = (store_id, str(brand).strip(), str(category).strip().upper())
+            key = (store_id, str(brand).strip(), category, segment)
             totals[key] = totals.get(key, 0) + int(quantity)
         except (TypeError, ValueError):
             skipped.append({"row": row_num, "reason": "არასწორი რაოდენობა"})
@@ -99,13 +104,14 @@ def write_stock_data(totals):
         store_id = k[0]
         brand = k[1]
         category = k[2]
+        segment = k[3]
         quantity = v
-        update_stock_data(store_id, brand, category, quantity)
+        update_stock_data(store_id, brand, category, segment, quantity)
     db.session.commit()
 
 
-def update_stock_data(store_id, brand, category, quantity):
-    stock_snapshot = StockSnapshot.query.filter_by(store_id=store_id, brand=brand, category=category).first()
+def update_stock_data(store_id, brand, category, segment, quantity):
+    stock_snapshot = StockSnapshot.query.filter_by(store_id=store_id, brand=brand, category=category, segment=segment).first()
     if stock_snapshot:
         stock_snapshot.quantity = quantity
         stock_snapshot.snapshot_date = datetime.now()
@@ -113,11 +119,8 @@ def update_stock_data(store_id, brand, category, quantity):
         new_stock_snapshot = StockSnapshot(
             store_id=store_id, brand=brand, 
             category=category, 
+            segment=segment,
             quantity=quantity, 
             snapshot_date=datetime.now()
- )
+        )
         db.session.add(new_stock_snapshot)
-
-
-
-            

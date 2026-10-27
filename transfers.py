@@ -25,7 +25,7 @@ def create_transfers():
         return jsonify({"error": "transfers must be a list"}), 400
     errors = []
     successful_transfers = []
-    required = ("brand", "quantity", "from_store_id", "to_store_id")
+    required = ("brand", "quantity", "segment", "from_store_id", "to_store_id")
     for row_num, t in enumerate(transfer_list):
         if not isinstance(t, dict):
             errors.append({"index": row_num, "error": "row must be an object"})
@@ -40,6 +40,9 @@ def create_transfers():
         if not isinstance(t["quantity"], int) or isinstance(t["quantity"], bool):
             errors.append({"index": row_num, "error": "quantity must be an integer"})
             continue
+        if t["segment"] not in {"ADULTS", "KIDS"}:
+            errors.append({"index": row_num, "error": "segment must be ADULTS or KIDS"})
+            continue
         if t["quantity"] <= 0 or t["from_store_id"] == t["to_store_id"]:
             errors.append({"index": row_num, "error": "quantity must be > 0 or from/to stores must differ"})
             continue
@@ -47,6 +50,7 @@ def create_transfers():
             new_transfer = PlannedTransfer(
                 brand = t["brand"],
                 quantity = t["quantity"], 
+                segment = t["segment"],
                 submitted_at = datetime.now(), 
                 from_store_id = t["from_store_id"], 
                 to_store_id = t["to_store_id"]
@@ -68,6 +72,7 @@ def create_transfers():
                 "id": s.id,
                 "brand": s.brand,
                 "quantity": s.quantity,
+                "segment": s.segment,
                 "submitted_at": s.submitted_at.strftime("%Y-%m-%d %H:%M:%S"),
                 "from_store_id": s.from_store_id,
                 "to_store_id": s.to_store_id
@@ -96,6 +101,7 @@ def show_transfers():
             "id": s.id,
             "brand": s.brand, 
             "quantity": s.quantity,
+            "segment": s.segment,
             "submitted_at": s.submitted_at.strftime("%Y-%m-%d %H:%M:%S"),
             "from_store_id": s.from_store_id,
             "to_store_id": s.to_store_id 
@@ -113,6 +119,7 @@ def view_transfers():
                 "id": s.id,
                 "brand": s.brand, 
                 "quantity": s.quantity,
+                "segment": s.segment,
                 "submitted_at": s.submitted_at.strftime("%Y-%m-%d %H:%M:%S"),
                 "from_store_name": f.name,
                 "to_store_name": t.name,
