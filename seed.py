@@ -18,8 +18,6 @@ STORES = [
     ("ShoeGal_ Batu_Gamsax", "store"),
     ("ICR_Shoes_2", "store"),
     ("ICR_Shoes TB_Galery", "store"),
-    ("Awlab_1 TB_Galery", "store"),
-    ("Awlab_2 Sab_CityMall", "store"),
     ("Bambino_2 EastPoint", "store"),
     ("Bata_ Batu_2_Metro", "store"),
     ("Bata_ Batu_Gamsax", "store"),

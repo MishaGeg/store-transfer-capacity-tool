@@ -72,9 +72,11 @@ def validate_stock_data(sheet, store_lookup):
         st_name = row[ST_COL]
         quantity = row[QTY_COL]
         segment = row[SEGMENT_COL]
+
         category = str(category).strip().upper() if category is not None else ""
         segment = str(segment).strip().upper() if segment is not None else ""
         brand = str(brand).strip().upper() if brand is not None else ""
+        
         if category not in {"FOOTWEAR", "SLIPPERS"}:
             continue
         if segment not in {"ADULTS", "KIDS"}:
