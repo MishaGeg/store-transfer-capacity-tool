@@ -74,6 +74,7 @@ def validate_stock_data(sheet, store_lookup):
         segment = row[SEGMENT_COL]
         category = str(category).strip().upper() if category is not None else ""
         segment = str(segment).strip().upper() if segment is not None else ""
+        brand = str(brand).strip().upper() if brand is not None else ""
         if category not in {"FOOTWEAR", "SLIPPERS"}:
             continue
         if segment not in {"ADULTS", "KIDS"}:
@@ -87,11 +88,11 @@ def validate_stock_data(sheet, store_lookup):
         if store_id is None:
             skipped.append({"row": row_num, "reason": f"არასწორი მაღაზია: {st_name}"})
             continue
-        if brand is None or str(brand).strip() == "":
+        if not brand:
             skipped.append({"row": row_num, "reason": "ცარიელი ბრენდის დასახელება"})
             continue     
         try:
-            key = (store_id, str(brand).strip(), category, segment)
+            key = (store_id, brand, category, segment)
             totals[key] = totals.get(key, 0) + int(quantity)
         except (TypeError, ValueError):
             skipped.append({"row": row_num, "reason": "არასწორი რაოდენობა"})
