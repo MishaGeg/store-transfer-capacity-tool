@@ -54,13 +54,11 @@ class BrandCapacity(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     brand = db.Column(db.String(50), nullable=False)
     capacity = db.Column(db.Integer, nullable=False)
-    segment = db.Column(db.String(10), nullable=False, default="ADULTS")
-
+    
     store_id = db.Column(db.Integer, db.ForeignKey("stores.id"), nullable=False)
 
     __table_args__ = (
-            db.CheckConstraint("segment IN ('ADULTS', 'KIDS')", name="check_capacity_segment"),
-            db.UniqueConstraint("store_id", "brand", "segment", name="unique_brand_capacity_store_id_brand_segment"),
+            db.UniqueConstraint("store_id", "brand", name="unique_brand_capacity_store_id_brand"),
             )
 
 class PlannedTransfer(db.Model):
