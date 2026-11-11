@@ -1,13 +1,30 @@
-from flask import Blueprint, request, jsonify, render_template
-from models import BrandCapacity, db, Store, PlannedTransfer, StockSnapshot
-from datetime import datetime, timedelta
+from flask import Blueprint, jsonify, render_template, request
 from flask_login import login_required
+
+from catalog import pool_labels
+from models import BrandCapacity, Store, db
+
 
 capacities_bp = Blueprint("capacities", __name__)
 
-BRAND_GROUPS = {
-    "ECCOGEOXSTUDIO": ["ECCO", "GEOX", "STUDIO"]
-}
+
+def capacity_list():
+    values = {
+        (row.store_id, row.brand): row.capacity
+        for row in BrandCapacity.query.all()
+    }
+    pools = pool_labels()
+    return [
+        {
+            "store_id": store.id,
+            "store_name": store.name,
+            "capacities": {
+                pool: values.get((store.id, pool))
+                for pool in pools
+            },
+        }
+        for store in Store.query.order_by(Store.name).all()
+    ]
 
 
 @capacities_bp.route("/edit-capacities")
@@ -19,94 +36,29 @@ def edit_capacities():
 @capacities_bp.route("/capacities", methods=["GET"])
 @login_required
 def show_capacities():
-    result = db.session.query(BrandCapacity, Store).join(Store, BrandCapacity.store_id == Store.id).all()
-    results = {}
-    for capacity, store in result:
-        store_name = store.name
-        if store_name not in results:
-            results[store_name] = {"store_id": store.id,"brands": []}
-        if capacity.brand in BRAND_GROUPS:
-            for b in BRAND_GROUPS[capacity.brand]:                      
-                results[store_name]["brands"].append({"brand": b,"capacity": capacity.capacity})    
-        else:
-            results[store_name]["brands"].append({"brand": capacity.brand,"capacity": capacity.capacity})       
-    return jsonify(results)
+    return jsonify(capacity_list())
 
-@capacities_bp.route("/capacity-groups", methods=["GET"])
-@login_required
-def show_capacity_groups():
-    result = db.session.query(BrandCapacity, Store).join(Store, BrandCapacity.store_id == Store.id).all()
-    results = {}
-    for capacity, store in result:
-        store_name = store.name
-        if store_name not in results:
-            results[store_name] = {"store_id": store.id,"brands": []}   
-        results[store_name]["brands"].append({"brand": capacity.brand,"capacity": capacity.capacity})       
-    return jsonify(results)            
 
-@capacities_bp.route("/capacities/<int:store_id>/<brand>", methods =["PUT"])
+@capacities_bp.route("/capacities/<int:store_id>/<brand>", methods=["PUT"])
 @login_required
 def update_capacities(store_id, brand):
-    result = BrandCapacity.query.filter_by(store_id = store_id, brand = brand).first()
-    if not result:
+    if brand not in pool_labels() or db.session.get(Store, store_id) is None:
         return jsonify({"error": "wrong store/brand name"}), 404
+
     data = request.get_json(silent=True) or {}
     try:
         new_capacity = int(data.get("capacity"))
         if new_capacity < 0:
             return jsonify({"error": "capacity cannot be negative"}), 400
-    except(TypeError, ValueError):
-        return jsonify({"error": "incorrect data"}), 400  
-    result.capacity = new_capacity
+    except (TypeError, ValueError):
+        return jsonify({"error": "incorrect data"}), 400
+
+    row = BrandCapacity.query.filter_by(store_id=store_id, brand=brand).first()
+    if row:
+        row.capacity = new_capacity
+    else:
+        row = BrandCapacity(store_id=store_id, brand=brand, capacity=new_capacity)
+        db.session.add(row)
+
     db.session.commit()
-    return jsonify({"brand": result.brand, "capacity": result.capacity}), 200
-
-@capacities_bp.route("/capacity-check", methods=["GET"])
-@login_required
-def check_capacity():
-    result = db.session.query(BrandCapacity, Store).join(Store, BrandCapacity.store_id == Store.id).all()
-    free_space = {}
-    for c in result:
-        current_transfers = 0
-        store_id = c[1].id
-        name = c[1].name
-        capacity = c[0].capacity
-        brand = []
-        if c[0].brand in BRAND_GROUPS:
-            brand = BRAND_GROUPS[c[0].brand]
-        else:
-            brand.append(c[0].brand)
-
-        for t in PlannedTransfer.query.filter(
-            PlannedTransfer.submitted_at > datetime.now() - timedelta(days=5),
-            PlannedTransfer.to_store_id == store_id,
-            PlannedTransfer.brand.in_(brand)
-        ).all():
-            current_transfers += t.quantity       
-
-        current_stock_rows = StockSnapshot.query.filter(
-            StockSnapshot.store_id == store_id, StockSnapshot.brand.in_(brand), StockSnapshot.category == "FOOTWEAR"
-        ).all()
-        current_stock = 0
-        snapshot_date = ""
-        for row in current_stock_rows:
-                current_stock += row.quantity
-                if row.snapshot_date:
-                    snapshot_date = row.snapshot_date.strftime("%Y-%m-%d %H:%M:%S")
-        if name not in free_space:
-            free_space[name] = {
-                "snapshot_date": snapshot_date,
-                "brands": {}
-            }
-        for b in brand:    
-            free_space[name][b] = capacity - current_stock - current_transfers   
-    return jsonify(free_space)        
-
-
-        
-            
-
-
-    
-
-
+    return jsonify({"brand": row.brand, "capacity": row.capacity})
