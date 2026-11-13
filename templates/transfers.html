@@ -122,7 +122,6 @@
         }
 
         .toolbar-card,
-        .order-card,
         .matrix-card {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -133,11 +132,6 @@
         .toolbar-card {
             padding: .8rem .9rem;
             margin-bottom: .6rem;
-        }
-
-        .order-card {
-            padding: .85rem .9rem;
-            margin-bottom: .75rem;
         }
 
         .matrix-card {
@@ -269,76 +263,6 @@
             font-size: 11px;
         }
 
-        .order-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: .9rem;
-            padding-bottom: .65rem;
-            margin-bottom: .65rem;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .order-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: .35rem;
-        }
-
-        .order-item {
-            display: flex;
-            align-items: center;
-            gap: .2rem;
-            padding: .28rem .35rem .28rem .5rem;
-            border: 1px solid transparent;
-            border-radius: var(--radius-sm);
-            background: var(--g50);
-        }
-
-        .order-item:hover {
-            border-color: var(--border);
-        }
-
-        .order-number {
-            margin-right: .15rem;
-            color: var(--text-muted);
-            font-size: 9px;
-            font-weight: 700;
-        }
-
-        .order-name {
-            max-width: 175px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            color: var(--text);
-            font-size: 9px;
-            font-weight: 600;
-        }
-
-        .move-btn {
-            width: 21px;
-            height: 21px;
-            padding: 0;
-            border: 1px solid var(--border-strong);
-            border-radius: var(--radius-sm);
-            background: var(--white);
-            color: var(--text);
-            font-size: 10px;
-            line-height: 19px;
-        }
-
-        .move-btn:hover:not(:disabled) {
-            background: var(--accent);
-            border-color: var(--accent);
-            color: var(--white);
-        }
-
-        .reset-btn {
-            padding: .32rem .55rem;
-            font-size: 10px;
-        }
-
         .table-scroll {
             width: 100%;
             overflow-x: hidden;
@@ -377,6 +301,23 @@
 
         .store-head {
             width: auto;
+        }
+
+        .store-head.draggable-store {
+            cursor: grab;
+            user-select: none;
+        }
+
+        .store-head.draggable-store:active {
+            cursor: grabbing;
+        }
+
+        .store-head.dragging-store {
+            opacity: .45;
+        }
+
+        .store-head.drag-over-store {
+            box-shadow: inset 2px 0 0 var(--accent);
         }
 
         th {
@@ -441,6 +382,23 @@
             padding-left: .45rem;
             background: var(--off-white);
             text-align: left;
+        }
+
+        .row-name-cell.draggable-store {
+            cursor: grab;
+            user-select: none;
+        }
+
+        .row-name-cell.draggable-store:active {
+            cursor: grabbing;
+        }
+
+        .dragging-row td {
+            opacity: .45;
+        }
+
+        .drag-over-row td {
+            border-top: 2px solid var(--accent);
         }
 
         .quantity-input {
@@ -640,6 +598,8 @@
             useMemo,
             useState
         } = React;
+
+        const BRANDS_BY_SEGMENT = {{ brands_by_segment | tojson }};
 
 
         /* ================================================================
@@ -1026,196 +986,6 @@
             return ordered;
         }
 
-
-        /* ================================================================
-           CAPACITY RESPONSE CONVERSION
-           ================================================================
-        
-           /capacities returns (confirmed against capacities.py):
-        
-           {
-               "Store Name": {
-                   "store_id": 1,
-                   "brands": [
-                       {
-                           "brand": "Ecco",
-                           "capacity": 5000
-                       }
-                   ]
-               }
-           }
-        
-           This is still used to populate the brand dropdown and to
-           decide which stores are visible for a given brand
-           (visibleStores) - it is NOT used for the free-space badge
-           anymore, since it only holds raw capacity, not capacity
-           minus stock minus inbound transfers.
-        
-           Convert it into:
-        
-           Map<storeId, Map<brand, capacity>>
-           ================================================================ */
-
-        function buildCapacityMap(rawData) {
-
-            const result =
-                new Map();
-
-            if (
-                !rawData ||
-                typeof rawData !== "object"
-            ) {
-                return result;
-            }
-
-            for (
-                const info of Object.values(rawData)
-            ) {
-
-                const storeId =
-                    Number(info?.store_id);
-
-                if (!Number.isInteger(storeId)) {
-                    continue;
-                }
-
-                const brandMap =
-                    new Map();
-
-                const brandList =
-                    Array.isArray(info?.brands)
-                        ? info.brands
-                        : [];
-
-                for (
-                    const item of brandList
-                ) {
-
-                    if (
-                        typeof item?.brand !==
-                        "string"
-                    ) {
-                        continue;
-                    }
-
-                    const capacity =
-                        Number(item.capacity);
-
-                    if (
-                        Number.isFinite(capacity)
-                    ) {
-                        brandMap.set(
-                            item.brand,
-                            capacity
-                        );
-                    }
-                }
-
-                result.set(
-                    storeId,
-                    brandMap
-                );
-            }
-
-            return result;
-        }
-
-
-        /* ================================================================
-           FREE-SPACE RESPONSE CONVERSION
-           ================================================================
-        
-           /capacity-check returns (confirmed against capacities.py):
-        
-           {
-               "Store Name": {
-                   "Ecco": 4700,
-                   "Geox": 4700,
-                   "Studio": 4700
-               }
-           }
-        
-           Free space is already fully computed server-side
-           (capacity - current_stock - current_transfers), so the
-           frontend does no subtraction of its own anymore.
-        
-           /capacity-check keys its response by STORE NAME, not
-           store_id, so the stores list (already loaded via
-           GET /stores) is used here to resolve each name back to
-           its id - producing the same Map<storeId, Map<brand,...>>
-           shape the badge rendering code already expects.
-        
-           Convert it into:
-        
-           Map<storeId, Map<brand, freeSpace>>
-           ================================================================ */
-
-        function buildFreeSpaceMap(rawData, stores) {
-
-            const result =
-                new Map();
-
-            if (
-                !rawData ||
-                typeof rawData !== "object"
-            ) {
-                return result;
-            }
-
-            const idByName =
-                new Map(
-                    stores.map(
-                        store => [
-                            store.name,
-                            Number(store.id)
-                        ]
-                    )
-                );
-
-            for (
-                const [storeName, brandValues]
-                of Object.entries(rawData)
-            ) {
-
-                const storeId =
-                    idByName.get(storeName);
-
-                if (!Number.isInteger(storeId)) {
-                    continue;
-                }
-
-                const brandMap =
-                    new Map();
-
-                if (
-                    brandValues &&
-                    typeof brandValues === "object"
-                ) {
-
-                    for (
-                        const [brand, freeSpace]
-                        of Object.entries(brandValues)
-                    ) {
-
-                        const value =
-                            Number(freeSpace);
-
-                        if (Number.isFinite(value)) {
-                            brandMap.set(brand, value);
-                        }
-                    }
-                }
-
-                result.set(
-                    storeId,
-                    brandMap
-                );
-            }
-
-            return result;
-        }
-
-
         /* ================================================================
            APP
            ================================================================ */
@@ -1232,11 +1002,8 @@
             const [transfers, setTransfers] =
                 useState([]);
 
-            const [capacities, setCapacities] =
-                useState({});
-
-            const [freeSpace, setFreeSpace] =
-                useState({});
+            const [transferOptions, setTransferOptions] =
+                useState({ sources: [], destinations: [] });
 
 
             /* ------------------------------------------------------------
@@ -1246,8 +1013,14 @@
             const [selectedBrand, setSelectedBrand] =
                 useState("");
 
-            const [showOrder, setShowOrder] =
-                useState(false);
+            const [selectedSegment, setSelectedSegment] =
+                useState("ADULTS");
+
+            const [draggedStoreId, setDraggedStoreId] =
+                useState(null);
+
+            const [dragOverStoreId, setDragOverStoreId] =
+                useState(null);
 
             const [loading, setLoading] =
                 useState(true);
@@ -1300,16 +1073,32 @@
 
             /* ============================================================
                LOAD DATA
-        
-               /capacity-check is loaded alongside the other three -
-               it drives the free-space badge. A failure here is
-               non-fatal to the rest of the page: the badge just
-               falls back to "No capacity" if freeSpace stays empty.
                ============================================================ */
 
             useEffect(() => {
                 loadPageData();
             }, []);
+
+            useEffect(() => {
+                loadTransferOptions();
+            }, [selectedBrand, selectedSegment]);
+
+
+            async function loadTransferOptions() {
+                if (!selectedBrand) {
+                    setTransferOptions({ sources: [], destinations: [] });
+                    return;
+                }
+
+                try {
+                    const data = await apiFetch(
+                        `/transfer-options?brand=${encodeURIComponent(selectedBrand)}&segment=${selectedSegment}`
+                    );
+                    setTransferOptions(data);
+                } catch (_) {
+                    setTransferOptions({ sources: [], destinations: [] });
+                }
+            }
 
 
             async function loadPageData() {
@@ -1325,18 +1114,12 @@
 
                     const [
                         storesData,
-                        transfersData,
-                        capacityData,
-                        freeSpaceData
+                        transfersData
                     ] = await Promise.all([
 
                         apiFetch("/stores"),
 
-                        apiFetch("/transfers"),
-
-                        apiFetch("/capacities"),
-
-                        apiFetch("/capacity-check")
+                        apiFetch("/transfers")
                     ]);
 
 
@@ -1365,22 +1148,6 @@
                             : []
                     );
 
-
-                    /*
-                     * Capacity response (dropdown + visibleStores).
-                     */
-                    setCapacities(
-                        capacityData || {}
-                    );
-
-
-                    /*
-                     * Free-space response (badge values).
-                     */
-                    setFreeSpace(
-                        freeSpaceData || {}
-                    );
-
                 }
                 catch (error) {
 
@@ -1398,123 +1165,10 @@
 
 
             /* ============================================================
-               REFRESH FREE SPACE ONLY
-        
-               Called after a transfer is submitted or deleted, so the
-               badge reflects the new inbound total without a full
-               page reload. Advisory only - never blocks the action
-               that triggered it, and a failure here just leaves the
-               previous badge values in place.
-               ============================================================ */
-
-            async function refreshFreeSpace() {
-
-                try {
-
-                    const freeSpaceData =
-                        await apiFetch(
-                            "/capacity-check"
-                        );
-
-                    setFreeSpace(
-                        freeSpaceData || {}
-                    );
-                }
-                catch (_) {
-
-                    /*
-                     * Advisory data only - do not surface
-                     * an error to the user over this.
-                     */
-                }
-            }
-
-
-            /* ============================================================
-               CAPACITY MAP (dropdown + visibleStores only)
-               ============================================================ */
-
-            const capacityMap =
-                useMemo(
-                    () =>
-                        buildCapacityMap(
-                            capacities
-                        ),
-                    [capacities]
-                );
-
-
-            /* ============================================================
-               FREE SPACE MAP (badge values)
-               ============================================================ */
-
-            const freeSpaceMap =
-                useMemo(
-                    () =>
-                        buildFreeSpaceMap(
-                            freeSpace,
-                            stores
-                        ),
-                    [freeSpace, stores]
-                );
-
-            /* ============================================================
                AVAILABLE BRANDS
                ============================================================ */
 
-            const brands =
-                useMemo(() => {
-
-                    const values =
-                        new Set();
-
-
-                    /*
-                     * Brands from existing transfers.
-                     */
-                    for (
-                        const transfer of transfers
-                    ) {
-
-                        if (
-                            typeof transfer?.brand ===
-                            "string"
-                        ) {
-
-                            values.add(
-                                transfer.brand
-                            );
-                        }
-                    }
-
-
-                    /*
-                     * Brands from capacity data.
-                     */
-                    for (
-                        const storeBrands
-                        of capacityMap.values()
-                    ) {
-
-                        for (
-                            const brand
-                            of storeBrands.keys()
-                        ) {
-
-                            values.add(brand);
-                        }
-                    }
-
-
-                    return [...values].sort(
-                        (a, b) =>
-                            a.localeCompare(b)
-                    );
-
-                }, [
-                    transfers,
-                    capacityMap
-                ]);
+            const brands = BRANDS_BY_SEGMENT[selectedSegment] || [];
 
 
             /* ============================================================
@@ -1555,37 +1209,46 @@
                - it is a warehouse (always shown), or
                - it has a BrandCapacity row for the selected brand
         
-               Still driven by capacityMap (/capacities), unchanged.
+               Supplied by /transfer-options for the selected brand.
                ============================================================ */
 
             const visibleStores =
                 useMemo(() => {
-
                     if (!selectedBrand) {
-                        return stores;
+                        return [];
                     }
 
-                    return stores.filter(store => {
+                    const rankById = new Map(
+                        stores.map((store, index) => [Number(store.id), index])
+                    );
 
-                        if (isWarehouse(store)) {
-                            return true;
-                        }
-
-                        const brandMap =
-                            capacityMap.get(
-                                Number(store.id)
-                            );
-
-                        return brandMap
-                            ? brandMap.has(selectedBrand)
-                            : false;
-                    });
+                    return [...transferOptions.sources].sort(
+                        (left, right) =>
+                            (rankById.get(Number(left.id)) ?? Number.MAX_SAFE_INTEGER) -
+                            (rankById.get(Number(right.id)) ?? Number.MAX_SAFE_INTEGER)
+                    );
 
                 }, [
-                    stores,
-                    capacityMap,
-                    selectedBrand
+                    transferOptions,
+                    selectedBrand,
+                    stores
                 ]);
+
+            const destinationStores = useMemo(() => {
+                if (!selectedBrand) {
+                    return [];
+                }
+
+                const rankById = new Map(
+                    stores.map((store, index) => [Number(store.id), index])
+                );
+
+                return [...transferOptions.destinations].sort(
+                    (left, right) =>
+                        (rankById.get(Number(left.id)) ?? Number.MAX_SAFE_INTEGER) -
+                        (rankById.get(Number(right.id)) ?? Number.MAX_SAFE_INTEGER)
+                );
+            }, [transferOptions, selectedBrand, stores]);
 
 
             /* ============================================================
@@ -1622,10 +1285,7 @@
                         const transfer of transfers
                     ) {
 
-                        if (
-                            transfer?.brand !==
-                            selectedBrand
-                        ) {
+                        if (transfer?.brand !== selectedBrand || transfer?.segment !== selectedSegment) {
                             continue;
                         }
 
@@ -1654,7 +1314,8 @@
 
                 }, [
                     transfers,
-                    selectedBrand
+                    selectedBrand,
+                    selectedSegment
                 ]);
 
 
@@ -1680,30 +1341,16 @@
             /* ============================================================
                FREE SPACE LOOKUP
         
-               Replaces the old capacityMinusInbound placeholder.
-               Reads the fully server-computed value straight from
-               freeSpaceMap - no client-side subtraction left.
+               /transfer-options computes this value on the server.
                ============================================================ */
 
             function freeSpaceFor(storeId) {
-
-                const brandMap =
-                    freeSpaceMap.get(
-                        Number(storeId)
-                    );
-
-                if (!brandMap) {
-                    return null;
-                }
-
-                const value =
-                    brandMap.get(
-                        selectedBrand
-                    );
-
-                return value === undefined
-                    ? null
-                    : value;
+                const destination = transferOptions.destinations.find(
+                    store => Number(store.id) === Number(storeId)
+                );
+                return typeof destination?.free_space === "number"
+                    ? destination.free_space
+                    : null;
             }
             /* ============================================================
                PASTE MULTIPLE VALUES
@@ -1738,12 +1385,12 @@
                     const columnIndex =
                         startColumnIndex + i;
 
-                    if (columnIndex >= visibleStores.length) {
+                    if (columnIndex >= destinationStores.length) {
                         break;
                     }
 
                     const toStore =
-                        visibleStores[columnIndex];
+                        destinationStores[columnIndex];
 
                     const toId =
                         Number(toStore.id);
@@ -1941,7 +1588,7 @@
                      * Advisory refresh - badge reflects the
                      * removed transfer.
                      */
-                    refreshFreeSpace();
+                    loadTransferOptions();
 
 
                     setStatus({
@@ -1976,7 +1623,7 @@
                     transfers.filter(
                         transfer =>
                             transfer?.brand ===
-                            selectedBrand &&
+                            selectedBrand && transfer?.segment === selectedSegment &&
                             Number(
                                 transfer.from_store_id
                             ) === Number(fromStoreId)
@@ -2092,7 +1739,7 @@
                  */
                 if (deletedIds.length) {
 
-                    refreshFreeSpace();
+                    loadTransferOptions();
                 }
 
 
@@ -2129,10 +1776,8 @@
                lastSubmitErrors, separate from the client-side
                per-cell validation errors in errorsByBrand.
         
-               Free space is re-fetched after any row is actually
-               created - advisory only, matches the decision that the
-               backend never calls /capacity-check during POST
-               /transfers itself.
+               Transfer options are refreshed after rows are created so
+               destination free-space badges stay current.
                ============================================================ */
 
             async function submitTransfers() {
@@ -2229,6 +1874,9 @@
 
                         brand:
                             selectedBrand,
+
+                        segment:
+                            selectedSegment,
 
                         quantity:
                             Number(value),
@@ -2403,7 +2051,7 @@
                      */
                     if (createdTransfers.length) {
 
-                        refreshFreeSpace();
+                        loadTransferOptions();
                     }
 
 
@@ -2459,73 +2107,71 @@
             }
 
 
-            /* ============================================================
-               MOVE STORE
-               ============================================================ */
-
-            function moveStore(
-                index,
-                direction
+            function reorderStores(
+                sourceStoreId,
+                targetStoreId
             ) {
+
+                if (sourceStoreId === targetStoreId) {
+                    return;
+                }
 
                 setStores(prev => {
 
-                    const next =
-                        [...prev];
+                    const sourceIndex = prev.findIndex(
+                        store => Number(store.id) === Number(sourceStoreId)
+                    );
+                    const targetIndex = prev.findIndex(
+                        store => Number(store.id) === Number(targetStoreId)
+                    );
 
-                    const target =
-                        index + direction;
-
-
-                    if (
-                        target < 0 ||
-                        target >= next.length
-                    ) {
+                    if (sourceIndex < 0 || targetIndex < 0) {
                         return prev;
                     }
 
-
-                    [
-                        next[index],
-                        next[target]
-                    ] = [
-                            next[target],
-                            next[index]
-                        ];
-
-
-                    /*
-                     * Save real database IDs.
-                     */
+                    const next = [...prev];
+                    const [movedStore] = next.splice(sourceIndex, 1);
+                    next.splice(targetIndex, 0, movedStore);
                     saveStoreIds(next);
-
-
                     return next;
                 });
             }
 
 
-            /* ============================================================
-               RESET STORE ORDER
-               ============================================================ */
-
-            function resetOrder() {
-
-                const ordered =
-                    defaultOrderStores(stores);
-
-                saveStoreIds(ordered);
-
-                setStores(ordered);
+            function handleStoreDragStart(event, storeId) {
+                const numericStoreId = Number(storeId);
+                setDraggedStoreId(numericStoreId);
+                event.dataTransfer.effectAllowed = "move";
+                event.dataTransfer.setData("text/plain", String(numericStoreId));
+            }
 
 
+            function handleStoreDragOver(event, storeId) {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = "move";
+                setDragOverStoreId(Number(storeId));
+            }
+
+
+            function handleStoreDrop(event, targetStoreId) {
+                event.preventDefault();
+                const sourceStoreId = Number(
+                    event.dataTransfer.getData("text/plain") || draggedStoreId
+                );
+                reorderStores(sourceStoreId, Number(targetStoreId));
+                setDraggedStoreId(null);
+                setDragOverStoreId(null);
                 setStatus({
                     type: "success",
-                    text:
-                        "Store order reset."
+                    text: "Store order saved."
                 });
             }
 
+
+            function handleStoreDragEnd() {
+                setDraggedStoreId(null);
+                setDragOverStoreId(null);
+            }
 
 
             async function logout() {
@@ -2555,7 +2201,7 @@
                 return transfers.filter(
                     transfer =>
                         transfer?.brand ===
-                        selectedBrand &&
+                        selectedBrand && transfer?.segment === selectedSegment &&
                         Number(
                             transfer.from_store_id
                         ) === Number(fromStoreId)
@@ -2566,9 +2212,8 @@
             /* ============================================================
                STORE HEADER
         
-               Badge now reads directly from freeSpaceFor (real
-               /capacity-check data) instead of the old
-               capacityMinusInbound placeholder.
+               Badge reads the free-space value returned with the
+               selected brand's transfer options.
                ============================================================ */
 
             function renderStoreHeader(
@@ -2604,8 +2249,28 @@
 
                     <th
                         key={store.id}
-                        className="store-head"
-                        title={store.name}
+                        className={`store-head draggable-store ${
+                            draggedStoreId === Number(store.id)
+                                ? "dragging-store"
+                                : ""
+                        } ${
+                            dragOverStoreId === Number(store.id) &&
+                            draggedStoreId !== Number(store.id)
+                                ? "drag-over-store"
+                                : ""
+                        }`}
+                        draggable={true}
+                        onDragStart={event =>
+                            handleStoreDragStart(event, store.id)
+                        }
+                        onDragOver={event =>
+                            handleStoreDragOver(event, store.id)
+                        }
+                        onDrop={event =>
+                            handleStoreDrop(event, store.id)
+                        }
+                        onDragEnd={handleStoreDragEnd}
+                        title={`Drag ${store.name} to reorder stores`}
                     >
 
                         <div className="store-label">
@@ -2861,11 +2526,22 @@
 
                             <div className="toolbar-left">
 
+
+
+                                <span className="toolbar-label">სქესი</span>
+
+                                <select className="brand-select" value={selectedSegment} onChange={event => {
+                                    setSelectedSegment(event.target.value);
+                                    setSelectedBrand("");
+                                    setLastSubmitErrors([]);
+                                }}>
+                                    <option value="ADULTS">Adults</option>
+                                    <option value="KIDS">Kids</option>
+                                </select>
+
                                 <span className="toolbar-label">
                                     ბრენდი
                                 </span>
-
-
                                 <select
                                     className="brand-select"
                                     value={selectedBrand}
@@ -3009,117 +2685,6 @@
 
 
                     {/* ====================================================
-                STORE ORDER PANEL
-                ==================================================== */}
-
-                    {showOrder && (
-
-                        <div className="order-card">
-
-                            <div className="order-header">
-
-                                <span className="section-label">
-                                    Store order
-                                </span>
-
-
-                                <button
-                                    type="button"
-                                    className="action-btn reset-btn"
-                                    onClick={resetOrder}
-                                >
-                                    Reset default
-                                </button>
-
-                            </div>
-
-
-                            <div className="order-list">
-
-                                {stores.map(
-                                    (store, index) => (
-
-                                        <div
-                                            className="order-item"
-                                            key={store.id}
-                                        >
-
-                                            <span className="order-number">
-                                                {index + 1}
-                                            </span>
-
-
-                                            <span
-                                                className="order-name"
-                                                title={store.name}
-                                            >
-                                                {store.name}
-                                            </span>
-
-
-                                            <button
-                                                type="button"
-                                                className="move-btn"
-
-                                                disabled={
-                                                    index === 0
-                                                }
-
-                                                onClick={() =>
-                                                    moveStore(
-                                                        index,
-                                                        -1
-                                                    )
-                                                }
-
-                                                aria-label={
-                                                    `Move ${store.name} up`
-                                                }
-
-                                                title="Move up"
-                                            >
-                                                ↑
-                                            </button>
-
-
-                                            <button
-                                                type="button"
-                                                className="move-btn"
-
-                                                disabled={
-                                                    index ===
-                                                    stores.length - 1
-                                                }
-
-                                                onClick={() =>
-                                                    moveStore(
-                                                        index,
-                                                        1
-                                                    )
-                                                }
-
-                                                aria-label={
-                                                    `Move ${store.name} down`
-                                                }
-
-                                                title="Move down"
-                                            >
-                                                ↓
-                                            </button>
-
-                                        </div>
-
-                                    )
-                                )}
-
-                            </div>
-
-                        </div>
-
-                    )}
-
-
-                    {/* ====================================================
                 NO STORES
                 ==================================================== */}
 
@@ -3143,12 +2708,12 @@
 
                         </div>
 
-                    ) : !visibleStores.length ? (
+                    ) : !visibleStores.length || !destinationStores.length ? (
 
                         <div className="matrix-card">
 
                             <div className="empty-state">
-                                No stores have capacity configured for {selectedBrand}.
+                                No eligible source or destination stores for {selectedBrand}.
                             </div>
 
                         </div>
@@ -3179,7 +2744,7 @@
                                             </th>
 
 
-                                            {visibleStores.map(
+                                            {destinationStores.map(
                                                 renderStoreHeader
                                             )}
 
@@ -3210,6 +2775,22 @@
                                                         key={
                                                             fromStore.id
                                                         }
+                                                        className={`${
+                                                            draggedStoreId === Number(fromStore.id)
+                                                                ? "dragging-row"
+                                                                : ""
+                                                        } ${
+                                                            dragOverStoreId === Number(fromStore.id) &&
+                                                            draggedStoreId !== Number(fromStore.id)
+                                                                ? "drag-over-row"
+                                                                : ""
+                                                        }`}
+                                                        onDragOver={event =>
+                                                            handleStoreDragOver(event, fromStore.id)
+                                                        }
+                                                        onDrop={event =>
+                                                            handleStoreDrop(event, fromStore.id)
+                                                        }
                                                     >
 
                                                         {/* =================
@@ -3217,7 +2798,13 @@
                                                     ================= */}
 
                                                         <td
-                                                            className="row-name-cell"
+                                                            className="row-name-cell draggable-store"
+                                                            draggable={true}
+                                                            onDragStart={event =>
+                                                                handleStoreDragStart(event, fromStore.id)
+                                                            }
+                                                            onDragEnd={handleStoreDragEnd}
+                                                            title="Drag to reorder stores"
                                                         >
 
                                                             <div
@@ -3238,7 +2825,7 @@
                                                     TRANSFER CELLS
                                                     ================= */}
 
-                                                        {visibleStores.map(
+                                                        {destinationStores.map(
                                                             (toStore, toIndex) =>
                                                                 renderCell(
                                                                     fromStore,

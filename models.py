@@ -49,6 +49,11 @@ class StockSnapshot(db.Model):
         )
 
 class BrandCapacity(db.Model):
+    """Store one shared capacity per location and catalog group.
+
+    The brand column holds a group label, unlike stock and transfer brands.
+    """
+
     __tablename__ = "capacities"
 
     id = db.Column(db.Integer, primary_key=True)

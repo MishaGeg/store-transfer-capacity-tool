@@ -53,6 +53,7 @@ def seed_stores():
     print(f"Done. Created: {created}, Updated: {updated}")
 
 def seed_user(username, password):
+    """Create a user or reset the existing user's password to the supplied value."""
     user = User.query.filter_by(username=username).first()
 
     if user:

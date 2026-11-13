@@ -4,6 +4,7 @@ from models import User, db
 
 load_dotenv()
 real_url = os.environ["DATABASE_URL"]
+# Redirect the connection before importing app, which reads DATABASE_URL at import.
 os.environ["DATABASE_URL"] = real_url.rsplit("/", 1)[0] + "/store_transfer_test"
 
 import pytest
@@ -15,6 +16,7 @@ from models import db
 @pytest.fixture
 def client():
     with app.app_context():
+        # These fixtures create and drop tables, so refuse the application database.
         assert app.config["SQLALCHEMY_DATABASE_URI"].endswith("store_transfer_test")
         db.create_all()
         yield app.test_client()

@@ -25,10 +25,12 @@ login_manager.init_app(app)
 
 @login_manager.user_loader
 def load_user(user_id):
+    """Restore the logged-in user from the ID stored in the session."""
     return db.session.get(User, int(user_id))
 
 @login_manager.unauthorized_handler
 def unauthorized():
+    # Prefer JSON for tied Accept values (including */*); page visits get a redirect.
     if request.accept_mimetypes.best_match(["application/json", "text/html"]) == "text/html":
         return redirect("/login")
     return jsonify({"error": "გთხოვთ შეხვიდეთ სისტემაში"}), 401

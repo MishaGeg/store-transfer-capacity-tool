@@ -1,4 +1,5 @@
-POOL_BY_BRAND = {
+# Each (brand, age group) pair belongs to one shared capacity group.
+BRAND_AGE_GROUP = {
     ("ECCO", "ADULTS"): "ECCOGEOXSTUDIO",
     ("GEOX", "ADULTS"): "ECCOGEOXSTUDIO",
     ("STUDIO", "ADULTS"): "ECCOGEOXSTUDIO",
@@ -10,27 +11,27 @@ POOL_BY_BRAND = {
     ("REPLAY", "ADULTS"): "ECCOGEOXSTUDIO",
 }
 
-SEGMENTS = ("ADULTS", "KIDS")
+AGE_GROUPS = ("ADULTS", "KIDS")
 
-def pool_for(brand, segment):
-    return POOL_BY_BRAND.get((brand, segment))
+def get_brand_group(brand, age_group):
+    """Return the capacity group for an exact catalog pair, or None if unknown."""
+    return BRAND_AGE_GROUP.get((brand, age_group))
 
-
-def pairs_in_pool(pool):
+def get_brand_age_group_pairs(brand_group):
+    """Return all (brand, age group) pairs sharing this group's capacity."""
     result = []
-    for pair, label in POOL_BY_BRAND.items():
-        if label == pool:
-            result.append(pair)
+    for brand_age_pair, group_name in BRAND_AGE_GROUP.items():
+        if group_name == brand_group:
+            result.append(brand_age_pair)
     return result
 
+def get_brand_group_names():
+    return sorted(set(BRAND_AGE_GROUP.values()))
 
-def pool_labels():
-    return sorted(set(POOL_BY_BRAND.values()))
-
-def brands_for_segment(segment):
+def get_brands_by_age_group(age_group):
     result = []
-    for brand, rule_segment in POOL_BY_BRAND:
-        if rule_segment == segment:
+    for brand, rule_age_group in BRAND_AGE_GROUP:
+        if rule_age_group == age_group:
             result.append(brand)
     return sorted(result)        
 

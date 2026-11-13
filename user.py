@@ -19,6 +19,7 @@ def login():
         db.select(User).where(User.username == username)
     ).scalar_one_or_none()
 
+    # Use the same error for both cases to avoid revealing which usernames exist.
     if user is None or not user.check_password(password):
         return {"error": "Invalid username or password"}, 401
     

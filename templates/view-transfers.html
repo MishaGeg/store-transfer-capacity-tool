@@ -257,8 +257,9 @@
                             <th>საიდან</th>
                             <th>სად</th>
                             <th>ბრენდი</th>
+                            <th>სეგმენტი</th>
                             <th>რაოდენობა</th>
-                            <th>გაგზავნის დრო</th>
+                            <th>ტრანსფერის დაგეგმვის დრო</th>
                         </tr>
                     </thead>
                     <tbody id="transfers-body"></tbody>
@@ -352,7 +353,7 @@
             const emptyState = document.getElementById("empty-state");
             const resultCount = document.getElementById("result-count");
 
-            body.innerHTML = "";
+            body.replaceChildren();
 
             if (!transfers.length) {
                 table.style.display = "none";
@@ -366,13 +367,21 @@
 
             for (const t of transfers) {
                 const row = document.createElement("tr");
-                row.innerHTML = `
-                    <td>${t.from_store_name}</td>
-                    <td>${t.to_store_name}</td>
-                    <td>${t.brand}</td>
-                    <td class="quantity">${t.quantity}</td>
-                    <td class="timestamp">${formatTimestamp(t.submitted_at)}</td>
-                `;
+                const values = [
+                    t.from_store_name,
+                    t.to_store_name,
+                    t.brand,
+                    t.segment === 'KIDS' ? 'Kids' : 'Adults',
+                    t.quantity,
+                    formatTimestamp(t.submitted_at)
+                ];
+                for (const value of values) {
+                    const cell = document.createElement("td");
+                    cell.textContent = value;
+                    row.appendChild(cell);
+                }
+                row.children[4].className = "quantity";
+                row.children[5].className = "timestamp";
                 body.appendChild(row);
             }
 

@@ -467,61 +467,69 @@
 
         async function fetchCapacities() {
             try {
-                return await apiFetch('/capacity-groups');
+                return await apiFetch('/capacities');
             } catch (err) {
-                return {};
+                return [];
             }
+        }
+
+        function createDisplayElement(tagName, className, text = '') {
+            const element = document.createElement(tagName);
+            element.className = className;
+            // Database values are display text, never HTML markup.
+            element.textContent = text;
+            return element;
         }
 
         function renderStores(data) {
             const container = document.getElementById('storesContainer');
+            container.replaceChildren();
 
-            if (!data || Object.keys(data).length === 0) {
-                container.innerHTML = '<div class="empty-state">No capacity data available.</div>';
+            if (!Array.isArray(data) || data.length === 0) {
+                container.appendChild(createDisplayElement(
+                    'div', 'empty-state', 'No capacity data available.'
+                ));
                 return;
             }
 
-            const html = Object.entries(data)
-                .map(([storeName, storeData]) => {
-                    const storeId = storeData.store_id;
-                    const brands = storeData.brands;
+            for (const storeData of data) {
+                const card = createDisplayElement('div', 'store-card');
+                const header = createDisplayElement('div', 'store-header');
+                header.appendChild(createDisplayElement('div', 'store-name', storeData.store_name));
+                const brandsList = createDisplayElement('div', 'brands-list');
 
-                    return `
-      <div class="store-card">
-        <div class="store-header">
-          <div class="store-name">${storeName}</div>
-        </div>
-        <div class="brands-list">
-          ${brands.map(item => `
-            <div class="brand-row">
-              <div class="brand-info">
-                <div class="brand-label">ბრენდი</div>
-                <div class="brand-name">${item.brand}</div>
-              </div>
-              <div class="capacity-value">${item.capacity}</div>
-              <button class="row-edit-btn edit-btn" data-store-id="${storeId}" data-store="${storeName}" data-brand="${item.brand}" data-capacity="${item.capacity}">
-                შეცვლა
-              </button>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    `;
-                })
-                .join('');
+                for (const [brand, capacity] of Object.entries(storeData.capacities)) {
+                    const row = createDisplayElement('div', 'brand-row');
+                    const info = createDisplayElement('div', 'brand-info');
+                    info.append(
+                        createDisplayElement('div', 'brand-label', 'ბრენდი'),
+                        createDisplayElement('div', 'brand-name', brand)
+                    );
 
-            container.innerHTML = html;
+                    const button = createDisplayElement('button', 'row-edit-btn edit-btn', 'შეცვლა');
+                    button.type = 'button';
+                    button.dataset.storeId = storeData.store_id;
+                    button.dataset.store = storeData.store_name;
+                    button.dataset.brand = brand;
+                    button.dataset.capacity = capacity === null ? '' : capacity;
+                    button.addEventListener('click', () => {
+                        openEditModal(
+                            button.dataset.storeId, button.dataset.store,
+                            button.dataset.brand, button.dataset.capacity
+                        );
+                    });
 
-            document.querySelectorAll('.edit-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const storeId = btn.getAttribute('data-store-id');
-                    const storeName = btn.getAttribute('data-store');
-                    const brand = btn.getAttribute('data-brand');
-                    const capacity = btn.getAttribute('data-capacity');
-                    openEditModal(storeId, storeName, brand, capacity);
-                });
-            });
+                    row.append(
+                        info,
+                        createDisplayElement('div', 'capacity-value', capacity === null || capacity === 0 ? '—' : capacity),
+                        button
+                    );
+                    brandsList.appendChild(row);
+                }
+
+                card.append(header, brandsList);
+                container.appendChild(card);
+            }
         }
 
         function openEditModal(storeId, storeName, brand, capacity) {
@@ -545,7 +553,7 @@
             const errorMsg = document.getElementById('errorMsg');
             const newCapacity = document.getElementById('capacityField').value;
 
-            if (!newCapacity || isNaN(newCapacity)) {
+            if (newCapacity.trim() === '' || isNaN(newCapacity) || Number(newCapacity) < 0) {
                 errorMsg.textContent = 'Enter a valid number.';
                 return;
             }
@@ -582,7 +590,6 @@
         document.getElementById('closeBtn').addEventListener('click', closeModal);
         document.getElementById('cancelBtn').addEventListener('click', closeModal);
         document.getElementById('saveBtn').addEventListener('click', saveCapacity);
-
         document.getElementById('capacityField').addEventListener('input', () => {
             document.getElementById('errorMsg').textContent = '';
         });
