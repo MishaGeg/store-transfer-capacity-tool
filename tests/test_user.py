@@ -2,7 +2,7 @@ from models import User
 
 
 def test_correct_password():
-    user = User(username="testuser")
+    user = User(username="testuser", role="supply_chain")
 
     user.set_password("secret123")
 
@@ -10,7 +10,7 @@ def test_correct_password():
 
 
 def test_wrong_password():
-    user = User(username="testuser")
+    user = User(username="testuser", role="supply_chain")
 
     user.set_password("secret123")
 
@@ -18,7 +18,7 @@ def test_wrong_password():
 
 def test_password_is_hashed():
 
-    user = User(username="testuser")
+    user = User(username="testuser", role="supply_chain")
     user.set_password("secret123")
 
     assert user.password_hash != "secret123"  

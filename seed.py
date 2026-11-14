@@ -1,8 +1,5 @@
-from models import Store, db, User
+from models import Store, db
 from app import app
-from dotenv import load_dotenv
-import os
-load_dotenv()
 
 
 STORES = [
@@ -52,22 +49,7 @@ def seed_stores():
     db.session.commit()
     print(f"Done. Created: {created}, Updated: {updated}")
 
-def seed_user(username, password):
-    """Create a user or reset the existing user's password to the supplied value."""
-    user = User.query.filter_by(username=username).first()
-
-    if user:
-        user.set_password(password)
-        print(f"Updated password for: {username}")
-    else:
-        user = User(username=username)
-        user.set_password(password)
-        db.session.add(user)
-        print(f"Created user: {username}")
-
-    db.session.commit()
 
 if __name__ == "__main__":
     with app.app_context():
         seed_stores()
-        seed_user("misha", os.environ.get("USER_PASSWORD"))

@@ -1,16 +1,17 @@
 from flask import Blueprint, request, jsonify, render_template
 from models import BrandCapacity, PlannedTransfer, StockSnapshot, db, Store
 from datetime import datetime, timedelta
-from flask_login import login_required
+from permissions import supply_chain_required
 from sqlalchemy import tuple_
 from sqlalchemy.orm import aliased
 from catalog import AGE_GROUPS, get_brand_age_group_pairs, get_brand_group, get_brands_by_age_group
+from flask_login import login_required
 
 transfers_bp = Blueprint("transfers", __name__)
 
 
 @transfers_bp.route("/transfers-page")
-@login_required
+@supply_chain_required
 def transfers_page():
     brands_by_segment = {}
 
@@ -25,7 +26,7 @@ def store_data(store):
 
 
 @transfers_bp.route("/transfer-options")
-@login_required
+@supply_chain_required
 def transfer_options():
     """Return dropdown choices and advisory free space for a catalog pair."""
     age_group = request.args.get("segment", "").upper()
@@ -115,7 +116,7 @@ def available_space(capacity_row):
 
 
 @transfers_bp.route("/transfers", methods=["POST"])
-@login_required
+@supply_chain_required
 def create_transfers():
     """Validate rows individually and commit accepted rows together.
 
@@ -205,7 +206,7 @@ def create_transfers():
 
 
 @transfers_bp.route("/transfers/<int:id>", methods=["DELETE"])
-@login_required
+@supply_chain_required
 def delete_transfer(id):
     result = PlannedTransfer.query.filter_by(id=id).first()
     if not result:
@@ -216,7 +217,7 @@ def delete_transfer(id):
 
 
 @transfers_bp.route("/transfers", methods=["GET"])
-@login_required
+@supply_chain_required
 def show_transfers():
     transfers = [
         {
@@ -234,11 +235,13 @@ def show_transfers():
 
 
 @transfers_bp.route("/public-transfers")
+@login_required
 def public_transfers():
     return render_template("view-transfers.html")
 
 
 @transfers_bp.route("/view-transfers", methods=["GET"])
+@login_required
 def view_transfers():
     # Two aliases let the same stores table represent both ends of each transfer.
     FromStore = aliased(Store)

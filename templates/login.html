@@ -177,7 +177,8 @@
                 });
 
                 if (response.ok) {
-                    window.location.href = "/transfers-page";
+                    const data = await response.json();
+                    window.location.href = data.next_page;
                     return;
                 }
 

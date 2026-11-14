@@ -48,7 +48,7 @@ app.register_blueprint(auth_bp)
 
 @app.route("/")
 def home():
-    return "HI"
+    return redirect("/login")
 
 
 if __name__ == "__main__":

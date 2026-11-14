@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from models import StockSnapshot, Store, db
+from models import StockSnapshot, Store, User, db
 from seed import STORES
 
 
@@ -73,10 +73,18 @@ def test_sample_workbook_supports_the_readme_demo(logged_in_client):
     ) == 85
 
     assert logged_in_client.post("/logout").status_code == 200
-    public_client = logged_in_client.application.test_client()
-    response = public_client.get("/view-transfers")
+    assert logged_in_client.get("/view-transfers").status_code == 401
+
+    manager = User(username="manager", role="store_manager")
+    manager.set_password("test-password")
+    db.session.add(manager)
+    db.session.commit()
+    assert logged_in_client.post("/login", json={
+        "username": "manager", "password": "test-password",
+    }).status_code == 200
+    response = logged_in_client.get("/view-transfers")
     assert response.status_code == 200
     assert response.get_json() == [{
         **created[0], "from_store_name": source_name, "to_store_name": destination_name,
     }]
-    assert public_client.get("/transfers").status_code == 401
+    assert logged_in_client.get("/transfers").status_code == 403

@@ -25,7 +25,7 @@ def client():
 
 @pytest.fixture
 def logged_in_client(client):
-    user = User(username="testuser")
+    user = User(username="testuser", role="supply_chain")
     user.set_password("secret123")
     db.session.add(user)
     db.session.commit()

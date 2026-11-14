@@ -3,9 +3,8 @@ from datetime import datetime
 from openpyxl import load_workbook
 from models import  Store
 from flask import Blueprint, request, render_template, jsonify
-from flask_login import login_required
 from sqlalchemy import func
-
+from permissions import supply_chain_required
 
 # Zero-based column positions in the expected Excel export.
 CAT_1_COL = 0
@@ -18,7 +17,7 @@ QTY_COL = 6
 stock_snapshot_bp = Blueprint("snapshot", __name__)
 
 @stock_snapshot_bp.route("/last-stock-update")
-@login_required
+@supply_chain_required
 def last_stock_update():
     latest = db.session.query(func.max(StockSnapshot.snapshot_date)).scalar()
     return jsonify({
@@ -26,7 +25,7 @@ def last_stock_update():
     })
 
 @stock_snapshot_bp.route("/import-stock", methods=["GET", "POST"])
-@login_required
+@supply_chain_required
 def import_stock():
     if request.method == "POST":
         file = request.files.get("file")
@@ -41,7 +40,7 @@ def import_stock():
 
 
 @stock_snapshot_bp.route("/current-stock", methods=["GET"])
-@login_required
+@supply_chain_required
 def current_stock():
     result =  [
         {

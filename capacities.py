@@ -1,9 +1,9 @@
 from flask import Blueprint, jsonify, render_template, request
-from flask_login import login_required
 
 from catalog import get_brand_group_names
 from models import BrandCapacity, Store, db
 
+from permissions import supply_chain_required
 
 capacities_bp = Blueprint("capacities", __name__)
 
@@ -34,19 +34,19 @@ def capacity_list():
 
 
 @capacities_bp.route("/edit-capacities")
-@login_required
+@supply_chain_required
 def edit_capacities():
     return render_template("edit-capacities.html")
 
 
 @capacities_bp.route("/capacities", methods=["GET"])
-@login_required
+@supply_chain_required
 def show_capacities():
     return jsonify(capacity_list())
 
 
 @capacities_bp.route("/capacities/<int:store_id>/<brand>", methods=["PUT"])
-@login_required
+@supply_chain_required
 def update_capacities(store_id, brand):
     if brand not in get_brand_group_names() or db.session.get(Store, store_id) is None:
         return jsonify({"error": "wrong store/brand name"}), 404

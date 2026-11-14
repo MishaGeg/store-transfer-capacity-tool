@@ -1,7 +1,7 @@
 from models import db, User
 
 def test_login_success(client):
-    user = User(username="testuser")
+    user = User(username="testuser", role="supply_chain")
     user.set_password("test123")
     db.session.add(user)
     db.session.commit()
@@ -10,7 +10,7 @@ def test_login_success(client):
     response.get_json()["message"] == "Login successful"
 
 def test_login_wrong_password(client):
-    user = User(username="testuser")
+    user = User(username="testuser", role="supply_chain")
     user.set_password("test123")
     db.session.add(user)
     db.session.commit()

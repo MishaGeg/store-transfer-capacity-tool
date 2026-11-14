@@ -64,7 +64,73 @@
 
         .container {
             width: 100%;
-            padding: 1rem 0 2rem;
+            padding: 1rem 1.25rem 2rem;
+        }
+
+        .page-header {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            margin-bottom: 1rem;
+        }
+
+        .page-header h2 {
+            margin-bottom: 0;
+        }
+
+        .nav {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            padding: .6rem 0;
+            margin-bottom: .75rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-spacer {
+            margin-left: auto;
+        }
+
+        .action-btn {
+            padding: .6rem 1rem;
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-sm);
+            background: var(--white);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .action-btn:hover {
+            background: var(--g50);
+        }
+
+        .action-btn:disabled {
+            opacity: .6;
+            cursor: wait;
+        }
+
+        .nav .action-btn {
+            padding: .42rem .7rem;
+            font-size: 11px;
+            transition: background .15s ease, border-color .15s ease, color .15s ease, transform .1s ease;
+        }
+
+        .nav .action-btn:active:not(:disabled) {
+            transform: scale(.98);
+        }
+
+        .action-btn.current {
+            background: var(--black);
+            border-color: var(--black);
+            color: var(--white);
+            pointer-events: none;
         }
 
         h2 {
@@ -233,7 +299,22 @@
 <body>
 
     <div class="container">
-        <h2>ტრანსფერები</h2>
+        {% if current_user.role == "supply_chain" %}
+        <nav class="nav">
+            <a href="/import-stock" class="action-btn">ნაშთის განახლება</a>
+            <a href="/transfers-page" class="action-btn">ტრანსფერები</a>
+            <a href="/edit-capacities" class="action-btn">ტევადობები</a>
+            <a href="/public-transfers" class="action-btn current" aria-current="page">ტრანსფერები (მაღაზიებისთვის)</a>
+            <button type="button" class="action-btn nav-spacer" id="logoutBtn">გასვლა</button>
+        </nav>
+        {% endif %}
+
+        <div class="page-header">
+            <h2>ტრანსფერები</h2>
+            {% if current_user.role != "supply_chain" %}
+            <button type="button" class="action-btn" id="logoutBtn">გასვლა</button>
+            {% endif %}
+        </div>
 
         <div class="toolbar-card">
             <div class="toolbar">
@@ -424,6 +505,22 @@
                 loading.style.display = "none";
             }
         }
+
+        document.getElementById("logoutBtn").addEventListener("click", async (event) => {
+            const button = event.currentTarget;
+            button.disabled = true;
+            try {
+                const response = await fetch("/logout", { method: "POST" });
+                if (!response.ok) {
+                    throw new Error("Logout failed");
+                }
+                window.location.href = "/login";
+            } catch (error) {
+                document.getElementById("status").textContent =
+                    "გასვლა ვერ მოხერხდა. სცადეთ ხელახლა.";
+                button.disabled = false;
+            }
+        });
 
         init();
     </script>
