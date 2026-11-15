@@ -416,7 +416,7 @@
 
             <div class="form-group">
                 <label>ტევადობა</label>
-                <input type="number" id="capacityField" placeholder="Enter capacity">
+                <input type="number" id="capacityField" min="0" max="2147483647" step="1" placeholder="Enter capacity">
                 <div class="error-msg" id="errorMsg"></div>
             </div>
 
@@ -557,9 +557,14 @@
         async function saveCapacity() {
             const errorMsg = document.getElementById('errorMsg');
             const newCapacity = document.getElementById('capacityField').value;
+            const capacity = Number(newCapacity);
 
-            if (newCapacity.trim() === '' || isNaN(newCapacity) || Number(newCapacity) < 0) {
-                errorMsg.textContent = 'Enter a valid number.';
+            if (newCapacity.trim() === '' || !Number.isInteger(capacity) || capacity < 0) {
+                errorMsg.textContent = 'Enter a non-negative whole number.';
+                return;
+            }
+            if (capacity > 2147483647) {
+                errorMsg.textContent = 'Capacity cannot exceed 2147483647.';
                 return;
             }
 
@@ -578,7 +583,7 @@
                     {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ capacity: parseInt(newCapacity) })
+                        body: JSON.stringify({ capacity })
                     }
                 );
 

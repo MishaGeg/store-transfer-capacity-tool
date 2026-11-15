@@ -1,4 +1,5 @@
 from models import Store, db, PlannedTransfer
+import pytest
 
 def test_create_transfer_empty_list(logged_in_client):
     response = logged_in_client.post("/transfers", json={"transfers": []})
@@ -106,3 +107,30 @@ def test_delete_unknown_transfer_returns_not_found(logged_in_client):
 
     assert response.status_code == 404
     assert "error" in response.get_json()
+
+
+@pytest.mark.parametrize("brand", [None, [], {}, 123, True])
+@pytest.mark.parametrize("mixed", [False, True])
+def test_transfer_rejects_non_string_brand_and_preserves_valid_rows(logged_in_client, brand, mixed):
+    source = Store(name="Brand validation source", type="store")
+    destination = Store(name="Brand validation destination", type="warehouse")
+    db.session.add_all([source, destination])
+    db.session.commit()
+    valid = {
+        "brand": "ECCO", "segment": "ADULTS", "quantity": 2,
+        "from_store_id": source.id, "to_store_id": destination.id,
+    }
+    invalid = {**valid, "brand": brand}
+    rows = [valid, invalid] if mixed else [invalid]
+
+    response = logged_in_client.post("/transfers", json={"transfers": rows})
+
+    assert response.status_code == (207 if mixed else 400)
+    payload = response.get_json()
+    assert payload["errors"] == [{
+        "index": 1 if mixed else 0, "error": "brand must be a string",
+    }]
+    assert len(payload["created"]) == (1 if mixed else 0)
+    assert PlannedTransfer.query.count() == (1 if mixed else 0)
+    if mixed:
+        assert PlannedTransfer.query.one().brand == "ECCO"

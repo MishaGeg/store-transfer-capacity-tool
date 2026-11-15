@@ -17,13 +17,21 @@ def login_page():
 @auth_bp.route("/login", methods=["POST"])
 @limiter.limit("10 per minute")
 def login():
-    data = request.get_json(silent=True) or {}
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return {"error": "JSON body must be an object"}, 400
 
     username = data.get("username")
     password = data.get("password")
 
+    if not isinstance(username, str) or not isinstance(password, str):
+        return {"error": "Username and password must be strings"}, 400
+
     if not username or not password:
         return {"error": "Username and password are required"}, 400
+    if len(username) > 120:
+        return {"error": "Username cannot exceed 120 characters"}, 400
 
     user = db.session.execute(
         db.select(User).where(User.username == username)

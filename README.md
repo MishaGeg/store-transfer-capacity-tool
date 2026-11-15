@@ -239,7 +239,7 @@ as sources and destinations. A warehouse without configured capacity has
 unknown available space (`null`), rather than zero.
 
 Capacity warnings are advisory; they do not block transfer submission. The
-submission API does not enforce the dropdown's stock/capacity eligibility rules.
+submission API does not enforce the grid's stock/capacity eligibility rules.
 
 ## Excel Stock Imports
 
@@ -276,7 +276,7 @@ submitting a replacement. Older plans remain listed until explicitly deleted.
 | `app.py` | Configuration, extensions, blueprint registration, and shared error handlers |
 | `models.py` | Database models and constraints |
 | `catalog.py` | Brand/age-group mappings and shared capacity groups |
-| `transfers.py` | Transfer APIs, dropdown options, and available-space calculation |
+| `transfers.py` | Transfer APIs, grid options, and available-space calculation |
 | `capacities.py` | Capacity listing and updates |
 | `stock_snapshot.py` | Excel loading, validation, aggregation, and stock persistence |
 | `stores.py` / `user.py` | Store listing, session authentication, and account CLI commands |
@@ -322,7 +322,9 @@ Transfer submission expects `{"transfers": [...]}`. Each row needs `brand`,
 `segment`, `quantity`, `from_store_id`, and `to_store_id`. The response contains
 `created` and `errors`: `201` means full success, `207` partial success, and
 `400` no accepted rows or an invalid batch structure. Row-error indexes start
-at zero. See [current limitations](#current-limitations) for validation gaps.
+at zero. Transfers require a valid catalog pair, a whole-number quantity from
+1 through 2,147,483,647, and two different existing stores with integer IDs.
+Capacity values must be integers from 0 through 2,147,483,647.
 
 ## Testing
 
@@ -361,11 +363,9 @@ suite does not provide browser automation or migration coverage.
 
 ## Current Limitations
 
-- Malformed requests, invalid store IDs, and workbook errors can cause server
-  errors instead of clear validation responses.
 - Failed data requests can appear as empty lists rather than visible errors.
 - Unsaved drafts are kept by brand and can carry across age groups; reloading
   discards them. Saved transfers retain their own age group.
 - Dates use server-local time without explicit timezone conversion, and the UI
   mixes Georgian and English.
-- All accounts have the same management access. Deleted plans have no audit history.
+- Deleted plans have no audit history.

@@ -1,9 +1,13 @@
 from models import StockSnapshot, db
 from datetime import datetime
 from openpyxl import load_workbook
+from defusedxml.common import DefusedXmlException
+from xml.etree.ElementTree import ParseError
+from zipfile import BadZipFile
 from models import  Store
 from flask import Blueprint, request, render_template, jsonify
 from sqlalchemy import func
+from sqlalchemy.exc import SQLAlchemyError
 from permissions import supply_chain_required
 
 
@@ -33,8 +37,16 @@ def import_stock():
             sheet, store_lookup = read_stock_data(file)
         except ValueError as e:
             return jsonify({"error": str(e)}), 400
-        processed, skipped, totals = validate_stock_data(sheet, store_lookup)
-        write_stock_data(totals)
+        try:
+            processed, skipped, totals = validate_stock_data(sheet, store_lookup)
+        except (BadZipFile, ParseError, DefusedXmlException, ValueError, KeyError, TypeError, IndexError, OSError):
+            return {"error": "Could not read workbook. Upload a valid .xlsx file."}, 400
+        finally:
+            sheet.parent.close()
+        try:
+            write_stock_data(totals)
+        except SQLAlchemyError:
+            return {"error": "Could not save stock. Please try again."}, 500
         return jsonify({"processed": processed, "skipped": skipped})
     return render_template("import.html")
 
@@ -61,7 +73,6 @@ def read_stock_data(file):
     """
     if not file or not file.filename.endswith(".xlsx"):
         raise ValueError("ფაილი უნდა იყოს .xlsx ფორმატში")
-
     workbook = load_workbook(file, data_only=True)
     sheet = workbook.active
     store_lookup = {store.name: store.id for store in Store.query.all()}
@@ -76,7 +87,6 @@ def validate_stock_data(sheet, store_lookup):
     processed = 0
     skipped = []
     totals = {}
-
     for row_num, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
         category = row[CAT_1_COL]
         brand = row[BRAND_1_COL]
@@ -115,14 +125,18 @@ def validate_stock_data(sheet, store_lookup):
 
 def write_stock_data(totals):
     """Upsert imported totals in one commit; absent stock keys are left unchanged."""
-    for k, v in totals.items():
-        store_id = k[0]
-        brand = k[1]
-        category = k[2]
-        segment = k[3]
-        quantity = v
-        update_stock_data(store_id, brand, category, segment, quantity)
-    db.session.commit()
+    try:
+        for k, v in totals.items():
+            store_id = k[0]
+            brand = k[1]
+            category = k[2]
+            segment = k[3]
+            quantity = v
+            update_stock_data(store_id, brand, category, segment, quantity)
+        db.session.commit()
+    except SQLAlchemyError:
+        db.session.rollback()
+        raise
 
 
 def update_stock_data(store_id, brand, category, segment, quantity):

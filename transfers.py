@@ -3,6 +3,7 @@ from models import BrandCapacity, PlannedTransfer, StockSnapshot, db, Store
 from datetime import datetime, timedelta
 from permissions import supply_chain_required
 from sqlalchemy import tuple_
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import aliased
 from catalog import AGE_GROUPS, get_brand_age_group_pairs, get_brand_group, get_brands_by_age_group
 from flask_login import login_required
@@ -28,7 +29,7 @@ def store_data(store):
 @transfers_bp.route("/transfer-options")
 @supply_chain_required
 def transfer_options():
-    """Return dropdown choices and advisory free space for a catalog pair."""
+    """Return grid stores and advisory free space for a catalog pair."""
     age_group = request.args.get("segment", "").upper()
     brand = request.args.get("brand", "").strip().upper()
     brand_group = get_brand_group(brand, age_group)
@@ -129,6 +130,7 @@ def create_transfers():
     transfer_list = data.get("transfers")
     if not isinstance(transfer_list, list):
         return jsonify({"error": "transfers must be a list"}), 400
+    existing_store_ids = {store.id for store in Store.query.all()}
     errors = []
     successful_transfers = []
     required = ("brand", "quantity", "segment", "from_store_id", "to_store_id")
@@ -143,40 +145,56 @@ def create_transfers():
         if missing:
             errors.append({"index": row_num, "error": "missing data"})
             continue
-
         if not isinstance(t["quantity"], int) or isinstance(t["quantity"], bool):
             errors.append({"index": row_num, "error": "quantity must be an integer"})
             continue
-        if t["segment"] not in AGE_GROUPS:
+        if not isinstance(t["segment"], str) or t["segment"] not in AGE_GROUPS:
             errors.append({"index": row_num, "error": "segment must be ADULTS or KIDS"})
+            continue
+        if not isinstance(t["brand"], str):
+            errors.append({"index": row_num, "error": "brand must be a string"})
             continue
         if get_brand_group(t["brand"], t["segment"]) is None:
             errors.append(
                 {"index": row_num, "error": "invalid brand/segment combination"}
             )
             continue
-        if t["quantity"] <= 0 or t["from_store_id"] == t["to_store_id"]:
-            errors.append(
-                {
-                    "index": row_num,
-                    "error": "quantity must be > 0 or from/to stores must differ",
-                }
-            )
+        if not 1 <= t["quantity"] <= 2_147_483_647:
+            errors.append({"index": row_num, "error": "quantity must be between 1 and 2147483647"})
             continue
-        else:
-            new_transfer = PlannedTransfer(
-                brand=t["brand"],
-                quantity=t["quantity"],
-                segment=t["segment"],
-                submitted_at=datetime.now(),
-                from_store_id=t["from_store_id"],
-                to_store_id=t["to_store_id"],
-            )
-            successful_transfers.append(new_transfer)
-
-    for t in successful_transfers:
-        db.session.add(t)
-    db.session.commit()
+        if (
+            not isinstance(t["from_store_id"], int)
+            or isinstance(t["from_store_id"], bool)
+            or not isinstance(t["to_store_id"], int)
+            or isinstance(t["to_store_id"], bool)
+        ):
+            errors.append({"index": row_num, "error": "store IDs must be integers"})
+            continue
+        if (
+            t["from_store_id"] not in existing_store_ids
+            or t["to_store_id"] not in existing_store_ids
+        ):
+            errors.append({"index": row_num, "error": "source or destination store does not exist"})
+            continue
+        if t["from_store_id"] == t["to_store_id"]:
+            errors.append({"index": row_num, "error": "source and destination stores must differ"})
+            continue
+        new_transfer = PlannedTransfer(
+            brand=t["brand"],
+            quantity=t["quantity"],
+            segment=t["segment"],
+            submitted_at=datetime.now(),
+            from_store_id=t["from_store_id"],
+            to_store_id=t["to_store_id"],
+        )
+        successful_transfers.append(new_transfer)
+    try:
+        for t in successful_transfers:
+            db.session.add(t)
+        db.session.commit()
+    except SQLAlchemyError:
+        db.session.rollback()
+        return {"error": "Could not save transfers. Please try again."}, 500
     if successful_transfers and errors:
         status_code = 207
     elif successful_transfers:
@@ -208,11 +226,17 @@ def create_transfers():
 @transfers_bp.route("/transfers/<int:id>", methods=["DELETE"])
 @supply_chain_required
 def delete_transfer(id):
+    if not 1 <= id <= 2_147_483_647:
+        return jsonify({"error": "wrong transfer id"}), 404
     result = PlannedTransfer.query.filter_by(id=id).first()
     if not result:
         return jsonify({"error": "wrong transfer id"}), 404
-    db.session.delete(result)
-    db.session.commit()
+    try:
+        db.session.delete(result)
+        db.session.commit()
+    except SQLAlchemyError:
+        db.session.rollback()
+        return {"error": "Could not delete transfer. Please try again."}, 500
     return jsonify({"deleted_id": id, "status": "success"}), 200
 
 

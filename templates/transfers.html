@@ -689,7 +689,7 @@
 
             const number = Number(text);
 
-            if (!Number.isSafeInteger(number)) {
+            if (!Number.isSafeInteger(number) || number > 2147483647) {
                 return {
                     value: text,
                     error: "Number is too large"
