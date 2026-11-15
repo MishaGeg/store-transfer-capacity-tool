@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, render_template, request
+from flask import Blueprint, jsonify, render_template, request, current_app
 from sqlalchemy.exc import SQLAlchemyError
 from catalog import get_brand_group_names
 from models import BrandCapacity, Store, db
@@ -79,6 +79,7 @@ def update_capacities(store_id, brand):
     try:
         db.session.commit()
     except SQLAlchemyError:
+        current_app.logger.exception("Could not save capacity")
         db.session.rollback()
         return {"error": "Could not save capacity. Please try again."}, 500
     return jsonify({"brand": row.brand, "capacity": row.capacity})

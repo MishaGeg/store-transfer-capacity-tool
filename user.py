@@ -1,4 +1,4 @@
-from flask import Blueprint, request, render_template, session
+from flask import Blueprint, request, render_template, session, current_app
 from models import User, db
 from flask_login import login_user, logout_user
 import click
@@ -98,6 +98,7 @@ def create_user(username, role):
     try:
         db.session.commit()
     except SQLAlchemyError:
+        current_app.logger.exception("Could not save the account")
         db.session.rollback()
         raise click.ClickException("Could not save the account.") from None
 
@@ -119,6 +120,7 @@ def reset_password(username):
     try:
         db.session.commit()
     except SQLAlchemyError:
+        current_app.logger.exception("Could not reset the password")
         db.session.rollback()
         raise click.ClickException("Could not reset the password.") from None
 

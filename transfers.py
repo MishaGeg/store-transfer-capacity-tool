@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, render_template
+from flask import Blueprint, request, jsonify, render_template, current_app
 from models import BrandCapacity, PlannedTransfer, StockSnapshot, db, Store
 from datetime import datetime, timedelta
 from permissions import supply_chain_required
@@ -193,6 +193,7 @@ def create_transfers():
             db.session.add(t)
         db.session.commit()
     except SQLAlchemyError:
+        current_app.logger.exception("Could not save transfers")
         db.session.rollback()
         return {"error": "Could not save transfers. Please try again."}, 500
     if successful_transfers and errors:
@@ -235,6 +236,7 @@ def delete_transfer(id):
         db.session.delete(result)
         db.session.commit()
     except SQLAlchemyError:
+        current_app.logger.exception("Could not delete transfer")
         db.session.rollback()
         return {"error": "Could not delete transfer. Please try again."}, 500
     return jsonify({"deleted_id": id, "status": "success"}), 200

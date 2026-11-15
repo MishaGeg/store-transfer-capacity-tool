@@ -24,7 +24,7 @@ def stores(logged_in_client):
 
 
 @pytest.mark.parametrize("mixed", [False, True])
-def test_failed_transfer_batch_rolls_back_all_rows(logged_in_client, stores, monkeypatch, mixed):
+def test_failed_transfer_batch_rolls_back_all_rows(logged_in_client, stores, monkeypatch, mixed, caplog):
     source, destination = stores
     rows = [{
         "brand": brand, "segment": "ADULTS", "quantity": 2,
@@ -39,6 +39,9 @@ def test_failed_transfer_batch_rolls_back_all_rows(logged_in_client, stores, mon
 
     assert response.status_code == 500
     assert response.get_json() == {"error": "Could not save transfers. Please try again."}
+    records = [record for record in caplog.records if record.getMessage() == "Could not save transfers"]
+    assert len(records) == 1
+    assert records[0].exc_info is not None
     assert PlannedTransfer.query.count() == 0
 
     retry = logged_in_client.post("/transfers", json={"transfers": rows})
@@ -46,7 +49,7 @@ def test_failed_transfer_batch_rolls_back_all_rows(logged_in_client, stores, mon
     assert PlannedTransfer.query.count() == 2
 
 
-def test_failed_transfer_deletion_preserves_row_and_allows_retry(logged_in_client, stores, monkeypatch):
+def test_failed_transfer_deletion_preserves_row_and_allows_retry(logged_in_client, stores, monkeypatch, caplog):
     source, destination = stores
     transfer = PlannedTransfer(
         brand="ECCO", segment="ADULTS", quantity=2,
@@ -62,6 +65,9 @@ def test_failed_transfer_deletion_preserves_row_and_allows_retry(logged_in_clien
 
     assert response.status_code == 500
     assert response.get_json() == {"error": "Could not delete transfer. Please try again."}
+    records = [record for record in caplog.records if record.getMessage() == "Could not delete transfer"]
+    assert len(records) == 1
+    assert records[0].exc_info is not None
     assert PlannedTransfer.query.one().id == transfer_id
 
     assert logged_in_client.delete(f"/transfers/{transfer_id}").status_code == 200
@@ -82,7 +88,7 @@ def stock_upload(store_name):
 
 @pytest.mark.parametrize("failure_stage", ["commit", "upsert"])
 def test_failed_stock_import_rolls_back_updates_and_inserts(
-    logged_in_client, stores, monkeypatch, failure_stage,
+    logged_in_client, stores, monkeypatch, failure_stage, caplog,
 ):
     source, _ = stores
     store_name = source.name
@@ -111,6 +117,9 @@ def test_failed_stock_import_rolls_back_updates_and_inserts(
 
     assert response.status_code == 500
     assert response.get_json() == {"error": "Could not save stock. Please try again."}
+    records = [record for record in caplog.records if record.getMessage() == "Could not save stock"]
+    assert len(records) == 1
+    assert records[0].exc_info is not None
     snapshot = StockSnapshot.query.one()
     assert snapshot.brand == "ECCO"
     assert snapshot.quantity == 10

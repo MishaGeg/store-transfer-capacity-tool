@@ -1,5 +1,5 @@
 import pytest
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import text
 
 from models import BrandCapacity, Store, db
 
@@ -55,21 +55,37 @@ def test_capacity_accepts_zero_and_positive_integers(capacity_target, value):
     assert BrandCapacity.query.one().capacity == value
 
 
-
-def test_failed_capacity_commit_rolls_back_and_allows_retry(capacity_target, monkeypatch):
+def test_failed_capacity_commit_rolls_back_and_allows_retry(capacity_target, monkeypatch, caplog):
     client, url, original = capacity_target
+    private_value = "private database parameter"
+
     def fail_commit():
+
         db.session.flush()
-        raise SQLAlchemyError("private database failure details")
+        db.session.execute(
+            text("SELECT :value FROM missing_logging_test_table"),
+            {"value": private_value},
+        )
+
     with monkeypatch.context() as patch:
         patch.setattr(db.session, "commit", fail_commit)
         response = client.put(url, json={"capacity": 100})
+
     assert response.status_code == 500
-    assert response.get_json() == {"error": "Could not save capacity. Please try again."}
+    assert response.get_json() == {
+        "error": "Could not save capacity. Please try again."
+    }
+    assert "private database parameter" not in response.get_data(as_text=True)
+    assert "private database parameter" not in caplog.text
+    assert "parameters hidden" in caplog.text
+    records = [record for record in caplog.records if record.getMessage() == "Could not save capacity"]
+    assert len(records) == 1
+    assert records[0].exc_info is not None
     row = BrandCapacity.query.one_or_none()
     if original is None:
         assert row is None
     else:
         assert row.capacity == original
+
     assert client.put(url, json={"capacity": 100}).status_code == 200
     assert BrandCapacity.query.one().capacity == 100

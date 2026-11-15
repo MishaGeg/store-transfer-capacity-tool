@@ -5,7 +5,7 @@ from defusedxml.common import DefusedXmlException
 from xml.etree.ElementTree import ParseError
 from zipfile import BadZipFile
 from models import  Store
-from flask import Blueprint, request, render_template, jsonify
+from flask import Blueprint, request, render_template, jsonify, current_app
 from sqlalchemy import func
 from sqlalchemy.exc import SQLAlchemyError
 from permissions import supply_chain_required
@@ -135,6 +135,7 @@ def write_stock_data(totals):
             update_stock_data(store_id, brand, category, segment, quantity)
         db.session.commit()
     except SQLAlchemyError:
+        current_app.logger.exception("Could not save stock")
         db.session.rollback()
         raise
 

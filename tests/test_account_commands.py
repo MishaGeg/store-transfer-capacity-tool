@@ -100,7 +100,7 @@ def test_invalid_password_reset_preserves_password(client, password_input):
 
 
 @pytest.mark.parametrize("command", ["create-user", "reset-password"])
-def test_failed_commit_rolls_back_account_command(client, monkeypatch, command):
+def test_failed_commit_rolls_back_account_command(client, monkeypatch, command, caplog):
     if command == "reset-password":
         user = User(username="anna", role="store_manager")
         user.set_password("old-password")
@@ -124,6 +124,10 @@ def test_failed_commit_rolls_back_account_command(client, monkeypatch, command):
     assert "Created user:" not in result.output
     assert "Updated password for:" not in result.output
     assert "database unavailable" not in result.output
+    message = "Could not save the account" if command == "create-user" else "Could not reset the password"
+    records = [record for record in caplog.records if record.getMessage() == message]
+    assert len(records) == 1
+    assert records[0].exc_info is not None
     if command == "create-user":
         assert User.query.count() == 0
     else:
