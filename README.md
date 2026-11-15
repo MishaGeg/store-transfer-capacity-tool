@@ -233,8 +233,8 @@ group labels. For example, ECCO Adults and ECCO Kids use different groups.
 ### Transfer eligibility
 
 Retail sources require positive FOOTWEAR stock for the exact selected brand
-and age group. Retail destinations require a capacity record for that pair's
-group; a configured value of zero still qualifies. Warehouses always appear
+and age group. Retail destinations require positive configured capacity for
+that pair's group; zero or unset capacity hides the destination column. Warehouses always appear
 as sources and destinations. A warehouse without configured capacity has
 unknown available space (`null`), rather than zero.
 

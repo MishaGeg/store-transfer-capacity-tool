@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import pytest
 
 from catalog import get_brands_by_age_group, get_brand_age_group_pairs, get_brand_group, get_brand_group_names
 from models import BrandCapacity, PlannedTransfer, StockSnapshot, Store, db
@@ -188,6 +189,52 @@ def test_transfer_options_use_exact_stock_for_sources_and_brand_group_for_destin
 def test_transfer_options_reject_invalid_catalog_selection(logged_in_client):
     assert logged_in_client.get("/transfer-options?brand=BATA&segment=KIDS").status_code == 400
     assert logged_in_client.get("/transfer-options?brand=ECCO&segment=BABIES").status_code == 400
+
+
+@pytest.mark.parametrize("segment,group", [
+    ("ADULTS", "ECCOGEOXSTUDIO"), ("KIDS", "BATABAMBINO"),
+])
+def test_zero_capacity_hides_retail_destination_but_not_sources_or_warehouses(
+    logged_in_client, segment, group,
+):
+    zero = add_store("Zero capacity")
+    unset = add_store("Unset capacity")
+    full = add_store("Full store")
+    overfull = add_store("Overfull store")
+    zero_warehouse = add_store("Zero warehouse", "warehouse")
+    unset_warehouse = add_store("Unset warehouse", "warehouse")
+    for store, capacity in ((zero, 0), (full, 10), (overfull, 10), (zero_warehouse, 0)):
+        add_capacity(store, group, capacity)
+    for store, quantity in ((zero, 1), (full, 10), (overfull, 11)):
+        add_stock(store, "ECCO", quantity, segment=segment)
+
+    response = logged_in_client.get(f"/transfer-options?brand=ECCO&segment={segment}")
+    assert response.status_code == 200
+    payload = response.get_json()
+    destination_ids = {store["id"] for store in payload["destinations"]}
+    assert zero.id not in destination_ids
+    assert unset.id not in destination_ids
+    assert destination_ids == {full.id, overfull.id, zero_warehouse.id, unset_warehouse.id}
+    assert zero.id in {store["id"] for store in payload["sources"]}
+    assert destination(payload, full.id)["free_space"] == 0
+    assert destination(payload, overfull.id)["free_space"] == -1
+    assert destination(payload, zero_warehouse.id)["free_space"] == 0
+    assert destination(payload, unset_warehouse.id)["free_space"] is None
+
+
+def test_setting_capacity_to_zero_removes_destination_on_next_load(logged_in_client):
+    store = add_store("Destination")
+    add_capacity(store, "ECCOGEOXSTUDIO", 100)
+    options_url = "/transfer-options?brand=ECCO&segment=ADULTS"
+    assert destination(logged_in_client.get(options_url).get_json(), store.id)
+
+    response = logged_in_client.put(
+        f"/capacities/{store.id}/ECCOGEOXSTUDIO", json={"capacity": 0},
+    )
+    assert response.status_code == 200
+    payload = logged_in_client.get(options_url).get_json()
+    assert store.id not in {row["id"] for row in payload["destinations"]}
+    assert BrandCapacity.query.one().capacity == 0
 
 
 def test_transfer_page_embeds_catalog_and_removed_routes_are_gone(logged_in_client):

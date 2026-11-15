@@ -70,7 +70,7 @@ def transfer_options():
 
         capacity = capacities.get(store.id)
 
-        if capacity is not None or is_warehouse:
+        if is_warehouse or (capacity is not None and capacity.capacity > 0):
             destination = store_data(store)
             if capacity is not None:
                 destination["free_space"] = available_space(capacity)
