@@ -7,7 +7,7 @@ from models import User, db
 
 @pytest.fixture(autouse=True)
 def masked_password_input(monkeypatch):
-    # CliRunner has no real terminal; use its hidden-input support for getpass.
+
     def read_password(prompt, *, echo_char):
         assert echo_char == "*"
         return click.prompt(prompt.rstrip(": "), hide_input=True, default="", show_default=False)

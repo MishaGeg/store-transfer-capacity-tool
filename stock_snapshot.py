@@ -6,7 +6,7 @@ from flask import Blueprint, request, render_template, jsonify
 from sqlalchemy import func
 from permissions import supply_chain_required
 
-# Zero-based column positions in the expected Excel export.
+
 CAT_1_COL = 0
 BRAND_1_COL = 3
 ST_COL = 4
@@ -61,7 +61,7 @@ def read_stock_data(file):
     """
     if not file or not file.filename.endswith(".xlsx"):
         raise ValueError("ფაილი უნდა იყოს .xlsx ფორმატში")
-    # Read cached formula results; openpyxl does not calculate formulas itself.
+
     workbook = load_workbook(file, data_only=True)
     sheet = workbook.active
     store_lookup = {store.name: store.id for store in Store.query.all()}
@@ -76,7 +76,7 @@ def validate_stock_data(sheet, store_lookup):
     processed = 0
     skipped = []
     totals = {}
-    # Skip the header and preserve Excel row numbers for error reporting.
+
     for row_num, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
         category = row[CAT_1_COL]
         brand = row[BRAND_1_COL]

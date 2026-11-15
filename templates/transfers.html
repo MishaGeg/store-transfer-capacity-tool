@@ -583,9 +583,9 @@
 
     <div id="root"></div>
 
-    <!-- =============================================================
-     REACT
-     ============================================================= -->
+
+
+
 
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -602,9 +602,9 @@
         const BRANDS_BY_SEGMENT = {{ brands_by_segment | tojson }};
 
 
-        /* ================================================================
-           DEFAULT STORE ORDER
-           ================================================================ */
+
+
+
 
         const DEFAULT_STORE_ORDER = [
             "WH_Gamarj",
@@ -624,9 +624,9 @@
             "transfers-store-order-v3";
 
 
-        /* ================================================================
-           HELPERS
-           ================================================================ */
+
+
+
 
         function normalizeStoreName(name) {
             return String(name ?? "")
@@ -655,19 +655,19 @@
         }
 
 
-        /* ================================================================
-           QUANTITY VALIDATION
-           ================================================================ */
+
+
+
 
         function validateQuantity(value) {
 
             const text =
                 String(value ?? "").trim();
 
-            /*
-             * Empty input is allowed.
-             * It simply means "no transfer".
-             */
+
+
+
+
             if (text === "") {
                 return {
                     value: "",
@@ -675,9 +675,9 @@
                 };
             }
 
-            /*
-             * Only positive whole numbers.
-             */
+
+
+
             if (!/^\d+$/.test(text)) {
                 return {
                     value: text,
@@ -708,15 +708,15 @@
         }
 
 
-        /* ================================================================
-           API HELPER
-           ================================================================
-        
-           207 is a real success (Multi-Status) - the backend committed
-           some rows and rejected others in the same request. It must
-           NOT be thrown as an error, or valid created transfers would
-           never reach the UI. Only 4xx/5xx are treated as hard failures.
-           ================================================================ */
+
+
+
+
+
+
+
+
+
 
         async function apiFetch(url, options = {}) {
 
@@ -778,9 +778,9 @@
         }
 
 
-        /* ================================================================
-           LOCAL STORAGE
-           ================================================================ */
+
+
+
 
         function loadSavedStoreIds() {
 
@@ -816,9 +816,9 @@
         }
 
 
-        /* ================================================================
-           DEFAULT ORDER MATCHING
-           ================================================================ */
+
+
+
 
         function defaultOrderStores(stores) {
 
@@ -898,9 +898,9 @@
         }
 
 
-        /* ================================================================
-           APPLY SAVED ORDER
-           ================================================================ */
+
+
+
 
         function applySavedOrder(
             stores,
@@ -926,9 +926,9 @@
 
             const result = [];
 
-            /*
-             * First use the saved order.
-             */
+
+
+
             for (const id of savedIds) {
 
                 const store =
@@ -939,10 +939,10 @@
                 }
             }
 
-            /*
-             * New stores that weren't in the saved
-             * order are appended.
-             */
+
+
+
+
             for (const store of stores) {
 
                 const exists =
@@ -961,9 +961,9 @@
         }
 
 
-        /* ================================================================
-           INITIAL STORE ORDER
-           ================================================================ */
+
+
+
 
         function initialStoreOrder(stores) {
 
@@ -986,15 +986,15 @@
             return ordered;
         }
 
-        /* ================================================================
-           APP
-           ================================================================ */
+
+
+
 
         function App() {
 
-            /* ------------------------------------------------------------
-               SERVER DATA
-               ------------------------------------------------------------ */
+
+
+
 
             const [stores, setStores] =
                 useState([]);
@@ -1006,9 +1006,9 @@
                 useState({ sources: [], destinations: [] });
 
 
-            /* ------------------------------------------------------------
-               UI STATE
-               ------------------------------------------------------------ */
+
+
+
 
             const [selectedBrand, setSelectedBrand] =
                 useState("");
@@ -1029,40 +1029,40 @@
                 useState(false);
 
 
-            /* ------------------------------------------------------------
-               DRAFT STATE
-        
-               Drafts are stored by BRAND, so switching brands does
-               not erase quantities that haven't been submitted.
-               ------------------------------------------------------------ */
+
+
+
+
+
+
 
             const [draftsByBrand, setDraftsByBrand] =
                 useState({});
 
 
-            /* ------------------------------------------------------------
-               VALIDATION STATE
-               ------------------------------------------------------------ */
+
+
+
 
             const [errorsByBrand, setErrorsByBrand] =
                 useState({});
 
 
-            /* ------------------------------------------------------------
-               LAST SUBMIT ERRORS
-        
-               Rows the backend itself rejected (e.g. quantity <= 0)
-               on the most recent submit. Cleared on the next submit
-               attempt or brand change.
-               ------------------------------------------------------------ */
+
+
+
+
+
+
+
 
             const [lastSubmitErrors, setLastSubmitErrors] =
                 useState([]);
 
 
-            /* ------------------------------------------------------------
-               STATUS MESSAGE
-               ------------------------------------------------------------ */
+
+
+
 
             const [status, setStatus] =
                 useState({
@@ -1071,9 +1071,9 @@
                 });
 
 
-            /* ============================================================
-               LOAD DATA
-               ============================================================ */
+
+
+
 
             useEffect(() => {
                 loadPageData();
@@ -1129,9 +1129,9 @@
                             : [];
 
 
-                    /*
-                     * Apply default/saved ordering.
-                     */
+
+
+
                     setStores(
                         initialStoreOrder(
                             storeList
@@ -1139,9 +1139,9 @@
                     );
 
 
-                    /*
-                     * Existing active transfers.
-                     */
+
+
+
                     setTransfers(
                         Array.isArray(transfersData)
                             ? transfersData
@@ -1164,16 +1164,16 @@
             }
 
 
-            /* ============================================================
-               AVAILABLE BRANDS
-               ============================================================ */
+
+
+
 
             const brands = BRANDS_BY_SEGMENT[selectedSegment] || [];
 
 
-            /* ============================================================
-               DEFAULT SELECTED BRAND
-               ============================================================ */
+
+
+
 
             useEffect(() => {
 
@@ -1202,15 +1202,15 @@
             ]);
 
 
-            /* ============================================================
-               VISIBLE STORES FOR THE SELECTED BRAND
-        
-               A store is shown if either:
-               - it is a warehouse (always shown), or
-               - it has a BrandCapacity row for the selected brand
-        
-               Supplied by /transfer-options for the selected brand.
-               ============================================================ */
+
+
+
+
+
+
+
+
+
 
             const visibleStores =
                 useMemo(() => {
@@ -1251,9 +1251,9 @@
             }, [transferOptions, selectedBrand, stores]);
 
 
-            /* ============================================================
-               CURRENT BRAND DRAFTS
-               ============================================================ */
+
+
+
 
             const currentDrafts =
                 draftsByBrand[
@@ -1261,9 +1261,9 @@
                 ] || {};
 
 
-            /* ============================================================
-               CURRENT BRAND ERRORS
-               ============================================================ */
+
+
+
 
             const currentErrors =
                 errorsByBrand[
@@ -1271,9 +1271,9 @@
                 ] || {};
 
 
-            /* ============================================================
-               ACTIVE TRANSFERS BY CELL
-               ============================================================ */
+
+
+
 
             const activeTransfersByCell =
                 useMemo(() => {
@@ -1296,11 +1296,11 @@
                             );
 
 
-                        /*
-                         * There should only be one active
-                         * transfer for a cell under the
-                         * current UI design.
-                         */
+
+
+
+
+
                         if (!map.has(key)) {
 
                             map.set(
@@ -1319,9 +1319,9 @@
                 ]);
 
 
-            /* ============================================================
-               DRAFT FLAGS
-               ============================================================ */
+
+
+
 
             const hasDrafts =
                 Object.values(
@@ -1338,11 +1338,11 @@
                 ).length > 0;
 
 
-            /* ============================================================
-               FREE SPACE LOOKUP
-        
-               /transfer-options computes this value on the server.
-               ============================================================ */
+
+
+
+
+
 
             function freeSpaceFor(storeId) {
                 const destination = transferOptions.destinations.find(
@@ -1352,25 +1352,25 @@
                     ? destination.free_space
                     : null;
             }
-            /* ============================================================
-               PASTE MULTIPLE VALUES
-               
-               Pastes a tab-separated row of values (copied from Excel)
-               starting at one cell, filling rightward across the visible
-               store columns in the order they're currently displayed.
-               Stops at the first locked cell (active transfer) or diagonal
-               (same store) instead of skipping past it.
-               ============================================================ */
+
+
+
+
+
+
+
+
+
 
             function handlePaste(event, fromId, startColumnIndex) {
 
                 const text =
                     event.clipboardData.getData("text");
 
-                /*
-                 * Only intercept an actual multi-value paste. A single
-                 * value pasted normally should behave exactly like typing.
-                 */
+
+
+
+
                 const values =
                     text.split("\t").map(v => v.trim());
 
@@ -1395,11 +1395,11 @@
                     const toId =
                         Number(toStore.id);
 
-                    /*
-                     * Diagonal (same store) or an existing active
-                     * transfer: stop the fill here rather than
-                     * skipping past it.
-                     */
+
+
+
+
+
                     if (toId === fromId) {
                         break;
                     }
@@ -1415,9 +1415,9 @@
                 }
             }
 
-            /* ============================================================
-               UPDATE DRAFT
-               ============================================================ */
+
+
+
 
             function updateDraft(
                 fromId,
@@ -1435,9 +1435,9 @@
                     validateQuantity(value);
 
 
-                /*
-                 * Save the typed value.
-                 */
+
+
+
                 setDraftsByBrand(prev => ({
 
                     ...prev,
@@ -1451,9 +1451,9 @@
                 }));
 
 
-                /*
-                 * Save/remove validation error.
-                 */
+
+
+
                 setErrorsByBrand(prev => {
 
                     const next = {
@@ -1489,9 +1489,9 @@
             }
 
 
-            /* ============================================================
-               CLEAR DRAFT
-               ============================================================ */
+
+
+
 
             function clearDraft(
                 fromId,
@@ -1536,12 +1536,12 @@
             }
 
 
-            /* ============================================================
-               DELETE ONE TRANSFER
-        
-               Re-fetches free space after a successful delete, since
-               removing an inbound transfer changes the badge value.
-               ============================================================ */
+
+
+
+
+
+
 
             async function deleteTransfer(
                 transfer
@@ -1565,10 +1565,10 @@
                     );
 
 
-                    /*
-                     * Only remove it from client state
-                     * after the server confirmed deletion.
-                     */
+
+
+
+
                     setTransfers(prev =>
                         prev.filter(
                             item =>
@@ -1584,10 +1584,10 @@
                     );
 
 
-                    /*
-                     * Advisory refresh - badge reflects the
-                     * removed transfer.
-                     */
+
+
+
+
                     loadTransferOptions();
 
 
@@ -1608,12 +1608,12 @@
             }
 
 
-            /* ============================================================
-               DELETE ALL TRANSFERS IN ONE ROW
-        
-               Re-fetches free space after the batch completes, once,
-               rather than once per deleted transfer.
-               ============================================================ */
+
+
+
+
+
+
 
             async function deleteRowTransfers(
                 fromStoreId
@@ -1660,16 +1660,16 @@
                 });
 
 
-                /*
-                 * allSettled is important here.
-        
-                 * Promise.all() would reject as soon as one
-                 * DELETE fails, which could make the UI lose
-                 * track of which individual requests actually
-                 * succeeded.
-        
-                 * allSettled lets us process every result.
-                 */
+
+
+
+
+
+
+
+
+
+
                 const results =
                     await Promise.allSettled(
                         rowTransfers.map(
@@ -1716,10 +1716,10 @@
                 );
 
 
-                /*
-                 * Remove only transfers whose DELETE
-                 * actually succeeded.
-                 */
+
+
+
+
                 if (deletedIds.length) {
 
                     setTransfers(prev =>
@@ -1733,10 +1733,10 @@
                 }
 
 
-                /*
-                 * Advisory refresh - badge reflects whatever
-                 * actually got deleted.
-                 */
+
+
+
+
                 if (deletedIds.length) {
 
                     loadTransferOptions();
@@ -1763,22 +1763,22 @@
             }
 
 
-            /* ============================================================
-               SUBMIT NEW TRANSFERS
-               ============================================================
-        
-               The backend returns { errors: [...], created: [...] }
-               on every outcome (201, 207, or 400). 207 means partial
-               success - some rows were committed and some were
-               rejected by the backend itself (e.g. quantity <= 0
-               slipping past client validation, or from == to). Those
-               backend-side errors are shown to the manager via
-               lastSubmitErrors, separate from the client-side
-               per-cell validation errors in errorsByBrand.
-        
-               Transfer options are refreshed after rows are created so
-               destination free-space badges stay current.
-               ============================================================ */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
             async function submitTransfers() {
 
@@ -1795,9 +1795,9 @@
                 const validationErrors = {};
 
 
-                /*
-                 * Walk through every draft for this brand.
-                 */
+
+
+
                 for (
                     const [
                         key,
@@ -1808,9 +1808,9 @@
                     )
                 ) {
 
-                    /*
-                     * Blank cells are ignored.
-                     */
+
+
+
                     if (
                         String(value).trim() === ""
                     ) {
@@ -1822,10 +1822,10 @@
                         validateQuantity(value);
 
 
-                    /*
-                     * Never silently ignore invalid
-                     * user input.
-                     */
+
+
+
+
                     if (parsed.error) {
 
                         validationErrors[key] =
@@ -1835,11 +1835,11 @@
                     }
 
 
-                    /*
-                     * Existing active transfers are
-                     * locked and must never be submitted
-                     * a second time.
-                     */
+
+
+
+
+
                     if (
                         activeTransfersByCell.has(
                             key
@@ -1890,11 +1890,11 @@
                 }
 
 
-                /*
-                 * Stop everything if any draft is invalid
-                 * on the client side, before it even reaches
-                 * the network.
-                 */
+
+
+
+
+
                 if (
                     Object.keys(
                         validationErrors
@@ -1945,15 +1945,15 @@
 
                 try {
 
-                    /*
-                     * Flask endpoint expects:
-        
-                     * { "transfers": [...] }
-        
-                     * and returns:
-        
-                     * { "errors": [...], "created": [...] }
-                     */
+
+
+
+
+
+
+
+
+
                     const result =
                         await apiFetch(
                             "/transfers",
@@ -1985,14 +1985,14 @@
                             : [];
 
 
-                    /*
-                     * Flask returns the actual DB IDs.
-        
-                     * Add them to server state so those
-                     * cells immediately become locked -
-                     * this happens even on a partial
-                     * (207) success.
-                     */
+
+
+
+
+
+
+
+
                     if (createdTransfers.length) {
 
                         setTransfers(prev => [
@@ -2002,14 +2002,14 @@
                     }
 
 
-                    /*
-                     * Only clear the drafts that were
-                     * actually created. A row rejected by
-                     * the backend (e.g. quantity <= 0)
-                     * stays in the draft so the manager can
-                     * see and fix it, matched up against
-                     * backendErrors below.
-                     */
+
+
+
+
+
+
+
+
                     const createdKeys =
                         new Set(
                             createdTransfers.map(
@@ -2045,10 +2045,10 @@
                     );
 
 
-                    /*
-                     * Advisory refresh - only meaningful if
-                     * something was actually created.
-                     */
+
+
+
+
                     if (createdTransfers.length) {
 
                         loadTransferOptions();
@@ -2088,11 +2088,11 @@
                 }
                 catch (error) {
 
-                    /*
-                     * Keep drafts intact on a hard failure
-                     * (network error, 400 with no created
-                     * rows, etc). The user can fix/retry them.
-                     */
+
+
+
+
+
                     setStatus({
                         type: "error",
                         text:
@@ -2180,19 +2180,19 @@
                     await apiFetch("/logout", { method: "POST" });
                 }
                 catch (_) {
-                    /*
-                     * Even if the request fails, send the user to the
-                     * login page. If the session is still valid, the
-                     * next protected call will tell them.
-                     */
+
+
+
+
+
                 }
 
                 window.location.href = "/login";
             }
 
-            /* ============================================================
-               COUNT ACTIVE ROW TRANSFERS
-               ============================================================ */
+
+
+
 
             function rowTransferCount(
                 fromStoreId
@@ -2209,12 +2209,12 @@
             }
 
 
-            /* ============================================================
-               STORE HEADER
-        
-               Badge reads the free-space value returned with the
-               selected brand's transfer options.
-               ============================================================ */
+
+
+
+
+
+
 
             function renderStoreHeader(
                 store
@@ -2291,9 +2291,9 @@
             }
 
 
-            /* ============================================================
-               TRANSFER CELL
-               ============================================================ */
+
+
+
 
             function renderCell(
                 fromStore,
@@ -2308,9 +2308,9 @@
                     Number(toStore.id);
 
 
-                /*
-                 * Same store = disabled diagonal.
-                 */
+
+
+
                 if (
                     fromId === toId
                 ) {
@@ -2351,15 +2351,15 @@
                     "";
 
 
-                /*
-                 * --------------------------------------------------------
-                 * ACTIVE TRANSFER
-                 * --------------------------------------------------------
-                 *
-                 * Active transfer is locked.
-                 *
-                 * User can delete it using X.
-                 */
+
+
+
+
+
+
+
+
+
                 if (transfer) {
 
                     return (
@@ -2404,11 +2404,11 @@
                 }
 
 
-                /*
-                 * --------------------------------------------------------
-                 * NEW / DRAFT CELL
-                 * --------------------------------------------------------
-                 */
+
+
+
+
+
 
                 return (
 
@@ -2468,9 +2468,9 @@
             }
 
 
-            /* ============================================================
-               LOADING
-               ============================================================ */
+
+
+
 
             if (loading) {
 
@@ -2496,9 +2496,9 @@
             }
 
 
-            /* ============================================================
-               MAIN UI
-               ============================================================ */
+
+
+
 
             return (
 
@@ -2516,9 +2516,9 @@
                     </h2>
 
 
-                    {/* ====================================================
-                TOOLBAR
-                ==================================================== */}
+                    {
+
+}
 
                     <div className="toolbar-card">
 
@@ -2627,9 +2627,9 @@
                     </div>
 
 
-                    {/* ====================================================
-                STATUS
-                ==================================================== */}
+                    {
+
+}
 
                     <div
                         className={
@@ -2644,14 +2644,14 @@
                     </div>
 
 
-                    {/* ====================================================
-                BACKEND-REJECTED ROWS FROM THE LAST SUBMIT
-        
-                Distinct from per-cell client validation errors -
-                these are rows the server itself refused (e.g.
-                quantity <= 0, or from == to) after a 207/400
-                response.
-                ==================================================== */}
+                    {
+
+
+
+
+
+
+}
 
                     {lastSubmitErrors.length > 0 && (
 
@@ -2684,9 +2684,9 @@
                     )}
 
 
-                    {/* ====================================================
-                NO STORES
-                ==================================================== */}
+                    {
+
+}
 
                     {!stores.length ? (
 
@@ -2720,14 +2720,14 @@
 
                     ) : (
 
-                        /* =================================================
-                           TRANSFER MATRIX
-        
-                           Rows AND columns both use visibleStores, so
-                           the grid stays square - a store missing
-                           capacity for this brand is hidden as both a
-                           source and a destination, not just one side.
-                           ================================================= */
+
+
+
+
+
+
+
+
 
                         <div className="matrix-card">
 
@@ -2793,9 +2793,9 @@
                                                         }
                                                     >
 
-                                                        {/* =================
-                                                    ROW NAME
-                                                    ================= */}
+                                                        {
+
+}
 
                                                         <td
                                                             className="row-name-cell draggable-store"
@@ -2821,9 +2821,9 @@
                                                         </td>
 
 
-                                                        {/* =================
-                                                    TRANSFER CELLS
-                                                    ================= */}
+                                                        {
+
+}
 
                                                         {destinationStores.map(
                                                             (toStore, toIndex) =>
@@ -2835,9 +2835,9 @@
                                                         )}
 
 
-                                                        {/* =================
-                                                    ROW DELETE
-                                                    ================= */}
+                                                        {
+
+}
 
                                                         <td
                                                             className="actions-cell"
@@ -2894,9 +2894,9 @@
         }
 
 
-        /* ================================================================
-           MOUNT REACT
-           ================================================================ */
+
+
+
 
         ReactDOM
             .createRoot(

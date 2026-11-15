@@ -259,7 +259,7 @@
             color: var(--white);
         }
 
-        /* Modal styling matching system components */
+
         .modal-overlay {
             display: none;
             position: fixed;
@@ -460,7 +460,7 @@
             try {
                 await apiFetch('/logout', { method: 'POST' });
             } catch (_) {
-                // Redirect regardless; a still-valid session is caught by the next protected call.
+
             }
             window.location.href = '/login';
         }
@@ -476,7 +476,7 @@
         function createDisplayElement(tagName, className, text = '') {
             const element = document.createElement(tagName);
             element.className = className;
-            // Database values are display text, never HTML markup.
+
             element.textContent = text;
             return element;
         }

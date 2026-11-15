@@ -161,7 +161,7 @@
         const submitBtn = document.getElementById("submit-btn");
 
         form.addEventListener("submit", async (event) => {
-            // Stop the browser's default form post; we send JSON instead.
+
             event.preventDefault();
             errorBox.textContent = "";
             submitBtn.disabled = true;
@@ -182,7 +182,7 @@
                     return;
                 }
 
-                // 400 (missing fields) and 401 (wrong credentials) both carry {"error": "..."}
+
                 const data = await response.json().catch(() => ({}));
                 errorBox.textContent = data.error || "შესვლა ვერ მოხერხდა";
             } catch (err) {

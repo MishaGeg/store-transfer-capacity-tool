@@ -1,4 +1,4 @@
-# Each (brand, age group) pair belongs to one shared capacity group.
+
 BRAND_AGE_GROUP = {
     ("ECCO", "ADULTS"): "ECCOGEOXSTUDIO",
     ("GEOX", "ADULTS"): "ECCOGEOXSTUDIO",
@@ -33,5 +33,4 @@ def get_brands_by_age_group(age_group):
     for brand, rule_age_group in BRAND_AGE_GROUP:
         if rule_age_group == age_group:
             result.append(brand)
-    return sorted(result)        
-
+    return sorted(result)

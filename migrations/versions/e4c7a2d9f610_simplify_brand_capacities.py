@@ -14,7 +14,7 @@ depends_on = None
 
 
 def upgrade():
-    # Non-adult rows were never read by the application.
+
     op.execute("DELETE FROM capacities WHERE segment <> 'ADULTS'")
     with op.batch_alter_table("capacities") as batch:
         batch.drop_constraint("check_capacity_segment", type_="check")

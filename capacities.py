@@ -21,7 +21,7 @@ def capacity_list():
     for store in stores:
         capacities = {}
         for brand_group in brand_groups:
-            # A configured zero must stay distinct from a missing capacity.
+
             capacities[brand_group] = values.get((store.id, brand_group))
 
         result.append({

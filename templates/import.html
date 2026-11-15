@@ -207,7 +207,7 @@
             try {
                 await fetch('/logout', { method: 'POST' });
             } catch (_) {
-                // Redirect regardless; a still-valid session is caught by the next protected call.
+
             }
             window.location.href = '/login';
         });

@@ -61,20 +61,20 @@ def transfer_options():
     destinations = []
 
     for store in stores:
-        # Warehouses remain selectable without matching stock or capacity rows.
+
         is_warehouse = store.type == "warehouse"
 
         if store.id in source_ids or is_warehouse:
             sources.append(store_data(store))
 
         capacity = capacities.get(store.id)
-        # Row existence determines eligibility, so a zero capacity still qualifies.
+
         if capacity is not None or is_warehouse:
             destination = store_data(store)
             if capacity is not None:
                 destination["free_space"] = available_space(capacity)
             else:
-                # Unknown capacity is different from zero available space.
+
                 destination["free_space"] = None
             destinations.append(destination)
 
@@ -88,13 +88,13 @@ def available_space(capacity_row):
     a capacity shortfall and are returned as advisory values.
     """
     pairs = get_brand_age_group_pairs(capacity_row.brand)
-    # Plans older than five days stop reserving space but remain in transfer lists.
+
     cutoff = datetime.now() - timedelta(days=5)
 
     incoming_transfers = PlannedTransfer.query.filter(
         PlannedTransfer.submitted_at > cutoff,
         PlannedTransfer.to_store_id == capacity_row.store_id,
-        # Match pairs together so brands count only in their assigned age group.
+
         tuple_(PlannedTransfer.brand, PlannedTransfer.segment).in_(pairs),
     ).all()
 
@@ -143,7 +143,7 @@ def create_transfers():
         if missing:
             errors.append({"index": row_num, "error": "missing data"})
             continue
-        # Python treats bool as a subclass of int, but it is not a valid quantity.
+
         if not isinstance(t["quantity"], int) or isinstance(t["quantity"], bool):
             errors.append({"index": row_num, "error": "quantity must be an integer"})
             continue
@@ -173,7 +173,7 @@ def create_transfers():
                 to_store_id=t["to_store_id"],
             )
             successful_transfers.append(new_transfer)
-    # Capacity warnings and dropdown eligibility do not block submission here.
+
     for t in successful_transfers:
         db.session.add(t)
     db.session.commit()
@@ -243,7 +243,7 @@ def public_transfers():
 @transfers_bp.route("/view-transfers", methods=["GET"])
 @login_required
 def view_transfers():
-    # Two aliases let the same stores table represent both ends of each transfer.
+
     FromStore = aliased(Store)
     ToStore = aliased(Store)
     transfers = [
