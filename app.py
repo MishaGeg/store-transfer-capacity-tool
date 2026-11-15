@@ -11,6 +11,7 @@ from user import auth_bp
 from flask_login import LoginManager
 from datetime import timedelta
 from flask_wtf.csrf import CSRFProtect, CSRFError
+from extensions import limiter
 load_dotenv()
 
 app = Flask(__name__)
@@ -26,6 +27,7 @@ migrate = Migrate(app, db)
 login_manager = LoginManager(app)
 
 db.init_app(app)
+limiter.init_app(app)
 
 
 @login_manager.user_loader
@@ -50,6 +52,11 @@ def handle_csrf_error(error):
         "error": "Security check failed. Reload the page and try again."
     }, 400
 
+@app.errorhandler(429)
+def too_many_requests(error):
+    return {
+        "error": "Too many login attempts. Please wait a minute and try again."
+    }, 429
 
 app.register_blueprint(transfers_bp)
 app.register_blueprint(capacities_bp)

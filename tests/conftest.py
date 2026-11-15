@@ -11,11 +11,13 @@ import pytest
 
 from app import app
 from models import db
+from extensions import limiter
 
 
 @pytest.fixture
 def client(monkeypatch):
 
+    limiter.reset()
 
     monkeypatch.setitem(app.config, "WTF_CSRF_ENABLED", False)
     with app.app_context():

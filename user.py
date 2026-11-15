@@ -4,6 +4,7 @@ from flask_login import login_user, logout_user
 import click
 from getpass import getpass
 from sqlalchemy.exc import SQLAlchemyError
+from extensions import limiter
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -14,6 +15,7 @@ def login_page():
 
 
 @auth_bp.route("/login", methods=["POST"])
+@limiter.limit("10 per minute")
 def login():
     data = request.get_json(silent=True) or {}
 
