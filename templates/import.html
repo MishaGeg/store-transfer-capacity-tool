@@ -2,6 +2,7 @@
 <html lang="ka">
 
 <head>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Import Stock</title>
@@ -203,9 +204,13 @@
     </div>
 
     <script>
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
         document.getElementById('logoutBtn').addEventListener('click', async () => {
             try {
-                await fetch('/logout', { method: 'POST' });
+                await fetch('/logout', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrfToken },
+                });
             } catch (_) {
 
             }
@@ -277,7 +282,11 @@
             submitBtn.disabled = true;
             result.textContent = '...';
             try {
-                const response = await fetch('/import-stock', { method: 'POST', body: new FormData(form) });
+                const response = await fetch('/import-stock', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrfToken },
+                    body: new FormData(form),
+                });
                 if (response.status === 401) {
                     window.location.href = '/login';
                     return;

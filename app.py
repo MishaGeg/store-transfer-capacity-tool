@@ -3,25 +3,30 @@ from dotenv import load_dotenv
 import os
 from models import db, User
 from flask_migrate import Migrate
-from flask_cors import CORS
 from transfers import transfers_bp
 from capacities import capacities_bp
 from stock_snapshot import stock_snapshot_bp
 from stores import stores_bp
 from user import auth_bp
 from flask_login import LoginManager
+from datetime import timedelta
+from flask_wtf.csrf import CSRFProtect, CSRFError
 load_dotenv()
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY")
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+app.config["SECRET_KEY"] = os.environ["SECRET_KEY"]
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ["DATABASE_URL"]
 app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
-db.init_app(app)
-migrate = Migrate(app, db)
-CORS(app)
+app.config["SESSION_COOKIE_SECURE"] = os.environ.get("APP_ENV") == "production"
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=5)
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
-login_manager = LoginManager()
-login_manager.init_app(app)
+csrf = CSRFProtect(app)
+migrate = Migrate(app, db)
+login_manager = LoginManager(app)
+
+db.init_app(app)
+
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -39,6 +44,13 @@ def unauthorized():
 def too_large(error):
     return jsonify({"error": "ფაილის ზომა აჭარბებს ლიმიტს"}), 413
 
+@app.errorhandler(CSRFError)
+def handle_csrf_error(error):
+    return {
+        "error": "Security check failed. Reload the page and try again."
+    }, 400
+
+
 app.register_blueprint(transfers_bp)
 app.register_blueprint(capacities_bp)
 app.register_blueprint(stock_snapshot_bp)
@@ -52,4 +64,4 @@ def home():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()

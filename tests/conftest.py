@@ -14,7 +14,10 @@ from models import db
 
 
 @pytest.fixture
-def client():
+def client(monkeypatch):
+
+
+    monkeypatch.setitem(app.config, "WTF_CSRF_ENABLED", False)
     with app.app_context():
 
         assert app.config["SQLALCHEMY_DATABASE_URI"].endswith("store_transfer_test")

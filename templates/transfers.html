@@ -2,6 +2,7 @@
 <html lang="en">
 
 <head>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -592,6 +593,7 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <script type="text/babel">
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
         const {
             useEffect,
@@ -721,7 +723,10 @@
         async function apiFetch(url, options = {}) {
 
             const response =
-                await fetch(url, options);
+                await fetch(url, {
+                    ...options,
+                    headers: { ...options.headers, "X-CSRFToken": csrfToken },
+                });
 
             if (response.status === 401) {
                 window.location.href = "/login";
@@ -2719,7 +2724,6 @@
                         </div>
 
                     ) : (
-
 
 
 
