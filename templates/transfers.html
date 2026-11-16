@@ -2183,16 +2183,14 @@
 
                 try {
                     await apiFetch("/logout", { method: "POST" });
+                    window.location.href = "/login";
                 }
                 catch (_) {
-
-
-
-
-
+                    setStatus({
+                        type: "error",
+                        text: "გასვლა ვერ მოხერხდა. განაახლეთ გვერდი და სცადეთ ხელახლა."
+                    });
                 }
-
-                window.location.href = "/login";
             }
 
 

@@ -207,14 +207,17 @@
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
         document.getElementById('logoutBtn').addEventListener('click', async () => {
             try {
-                await fetch('/logout', {
+                const response = await fetch('/logout', {
                     method: 'POST',
                     headers: { 'X-CSRFToken': csrfToken },
                 });
+                if (!response.ok) {
+                    throw new Error('Logout failed');
+                }
+                window.location.href = '/login';
             } catch (_) {
-
+                showError('გასვლა ვერ მოხერხდა. განაახლეთ გვერდი და სცადეთ ხელახლა.');
             }
-            window.location.href = '/login';
         });
 
         const form = document.getElementById('importForm');

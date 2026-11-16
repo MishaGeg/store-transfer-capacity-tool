@@ -387,6 +387,7 @@
             <a href="/public-transfers" class="action-btn">ტრანსფერები (მაღაზიებისთვის)</a>
             <button type="button" class="action-btn nav-spacer" id="logoutBtn">გასვლა</button>
         </nav>
+        <div class="error-msg" id="logoutError" role="alert"></div>
 
         <div class="header-section">
             <h2>მაღაზიების ტევადობები</h2>
@@ -464,10 +465,11 @@
         async function logout() {
             try {
                 await apiFetch('/logout', { method: 'POST' });
+                window.location.href = '/login';
             } catch (_) {
-
+                document.getElementById('logoutError').textContent =
+                    'გასვლა ვერ მოხერხდა. განაახლეთ გვერდი და სცადეთ ხელახლა.';
             }
-            window.location.href = '/login';
         }
 
         async function fetchCapacities() {
