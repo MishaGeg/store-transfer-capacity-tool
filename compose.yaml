@@ -1,0 +1,29 @@
+services:
+  app:
+    build: .
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
+      DATABASE_URL: postgresql+psycopg://store_app:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/store_transfer
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:18.7-bookworm
+    environment:
+      POSTGRES_DB: store_transfer
+      POSTGRES_USER: store_app
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "store_app", "-d", "store_transfer"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  postgres_data:
