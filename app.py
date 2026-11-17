@@ -12,6 +12,8 @@ from flask_login import LoginManager
 from datetime import timedelta
 from flask_wtf.csrf import CSRFProtect, CSRFError
 from extensions import limiter
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 load_dotenv()
 
 app = Flask(__name__)
@@ -69,6 +71,19 @@ app.register_blueprint(auth_bp)
 @app.route("/")
 def home():
     return redirect("/login")
+
+
+@app.get("/ready")
+def readiness():
+    """Report whether the application can query its database."""
+    try:
+        with db.engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+    except SQLAlchemyError:
+        app.logger.warning("Readiness database check failed")
+        return jsonify({"status": "unavailable"}), 503
+
+    return jsonify({"status": "ready"}), 200
 
 
 if __name__ == "__main__":
