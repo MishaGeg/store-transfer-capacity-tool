@@ -74,6 +74,14 @@ DATABASE_URL=postgresql+psycopg://your_db_user:your_db_password@localhost:5432/s
 | --- | --- |
 | `SECRET_KEY` | Signs Flask session cookies |
 | `DATABASE_URL` | PostgreSQL connection URL used by SQLAlchemy |
+| `RATELIMIT_STORAGE_URI` | Login-attempt counter storage; defaults to `memory://` for direct local runs |
+
+Docker Compose runs Redis on its internal network and sets
+`RATELIMIT_STORAGE_URI=redis://redis:6379/0` for Flask. Redis has no published host
+port and disk persistence is disabled: counters survive app restarts but reset
+when Redis restarts. The app waits for PostgreSQL and Redis healthchecks during
+startup; `/ready` checks both dependencies. Rebuild the app image after updating
+dependencies with `docker compose up -d --build` on an existing configured setup.
 
 Use an existing PostgreSQL login for `your_db_user` and its password for
 `your_db_password`. URL-encode reserved characters in the database password

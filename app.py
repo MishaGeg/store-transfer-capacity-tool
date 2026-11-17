@@ -24,6 +24,12 @@ app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
 app.config["SESSION_COOKIE_SECURE"] = os.environ.get("APP_ENV") == "production"
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=5)
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["RATELIMIT_STORAGE_URI"] = os.environ.get("RATELIMIT_STORAGE_URI", "memory://")
+if app.config["RATELIMIT_STORAGE_URI"].startswith(("redis://", "rediss://")):
+    app.config["RATELIMIT_STORAGE_OPTIONS"] = {
+        "socket_connect_timeout": 1,
+        "socket_timeout": 1,
+    }
 
 csrf = CSRFProtect(app)
 migrate = Migrate(app, db)
@@ -75,12 +81,16 @@ def home():
 
 @app.get("/ready")
 def readiness():
-    """Report whether the application can query its database."""
+    """Report whether the database and rate-limit storage are available."""
     try:
         with db.engine.connect() as connection:
             connection.execute(text("SELECT 1"))
     except SQLAlchemyError:
         app.logger.warning("Readiness database check failed")
+        return jsonify({"status": "unavailable"}), 503
+
+    if not limiter.storage.check():
+        app.logger.warning("Readiness rate-limit storage check failed")
         return jsonify({"status": "unavailable"}), 503
 
     return jsonify({"status": "ready"}), 200
