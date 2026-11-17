@@ -1,5 +1,6 @@
 services:
   app:
+    restart: unless-stopped
     build: .
     ports:
       - "127.0.0.1:8000:8000"
@@ -20,6 +21,7 @@ services:
       start_period: 20s
 
   db:
+    restart: unless-stopped
     image: postgres:18.7-bookworm
     environment:
       POSTGRES_DB: store_transfer
@@ -35,6 +37,7 @@ services:
       start_period: 10s
 
   redis:
+    restart: unless-stopped
     image: redis:8.10.3-alpine
     command: [ "redis-server", "--save", "", "--appendonly", "no" ]
     healthcheck:
