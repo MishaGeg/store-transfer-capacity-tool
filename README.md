@@ -51,7 +51,7 @@ If PowerShell blocks activation, use `.\.venv\Scripts\python.exe` instead of
 ### 3. Install dependencies
 
 ```powershell
-python -m pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
 ```
 
 ### 4. Configure the environment
@@ -73,6 +73,7 @@ DATABASE_URL=postgresql+psycopg://your_db_user:your_db_password@localhost:5432/s
 | Variable | Purpose |
 | --- | --- |
 | `SECRET_KEY` | Signs Flask session cookies |
+| `APP_ENV` | Use `development` for local HTTP. Setting `production` enables HTTPS-only session cookies; HTTPS must be configured separately. Compose defaults to `development`. |
 | `DATABASE_URL` | PostgreSQL connection URL used by SQLAlchemy |
 | `RATELIMIT_STORAGE_URI` | Login-attempt counter storage; defaults to `memory://` for direct local runs |
 

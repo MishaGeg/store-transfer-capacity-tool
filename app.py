@@ -22,7 +22,7 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.environ["DATABASE_URL"]
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"hide_parameters": True}
 app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
 app.config["SESSION_COOKIE_SECURE"] = os.environ.get("APP_ENV") == "production"
-app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=5)
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=1)
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["RATELIMIT_STORAGE_URI"] = os.environ.get("RATELIMIT_STORAGE_URI", "memory://")
 if app.config["RATELIMIT_STORAGE_URI"].startswith(("redis://", "rediss://")):

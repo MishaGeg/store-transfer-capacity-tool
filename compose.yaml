@@ -6,6 +6,7 @@ services:
       - "127.0.0.1:8000:8000"
     environment:
       SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
+      APP_ENV: ${APP_ENV:-development}
       DATABASE_URL: postgresql+psycopg://store_app:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/store_transfer
       RATELIMIT_STORAGE_URI: redis://redis:6379/0
     depends_on:
