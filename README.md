@@ -76,6 +76,13 @@ DATABASE_URL=postgresql+psycopg://your_db_user:your_db_password@localhost:5432/s
 | `APP_ENV` | Use `development` for local HTTP. Setting `production` enables HTTPS-only session cookies; HTTPS must be configured separately. Compose defaults to `development`. |
 | `DATABASE_URL` | PostgreSQL connection URL used by SQLAlchemy |
 | `RATELIMIT_STORAGE_URI` | Login-attempt counter storage; defaults to `memory://` for direct local runs |
+| `docker_pgs_password` | Compose database owner's password (`store_app`), passed unchanged to PostgreSQL |
+| `docker_pgs_password1` | Compose application account's password (`store_runtime`), URL-encoded for the connection URL |
+
+Compose expects `store_runtime` to exist with application table and sequence
+permissions. Changing `.env` does not create roles or change existing database
+passwords. Run schema migrations separately as the database owner; the runtime
+account has no schema-management permissions.
 
 Docker Compose runs Redis on its internal network and sets
 `RATELIMIT_STORAGE_URI=redis://redis:6379/0` for Flask. Redis has no published host
@@ -125,6 +132,38 @@ python -m flask --app app db upgrade
 
 Migration `27db4bdd6a21` assigns existing accounts the `supply_chain` role.
 New accounts require an explicit role.
+
+For Docker Compose, use the separate owner-only migration service. Check the
+current revision without changing the schema:
+
+```powershell
+docker compose run --rm --build migrate current
+```
+
+After backing up an existing database, apply migrations with:
+
+```powershell
+docker compose run --rm --build migrate
+```
+
+This temporary container connects as `store_app`; the running web app continues
+to use `store_runtime`. The `tools` profile keeps migrations out of ordinary
+`docker compose up` startup. The owner password is supplied through `PGPASSWORD`,
+so `docker_pgs_password` stays unencoded. The container is removed when finished.
+
+For future application tables and sequences, run these once as `store_app` in
+the target database, after creating `store_runtime`:
+
+```sql
+ALTER DEFAULT PRIVILEGES FOR ROLE store_app IN SCHEMA public
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO store_runtime;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE store_app IN SCHEMA public
+GRANT USAGE ON SEQUENCES TO store_runtime;
+```
+
+These defaults apply to objects subsequently created by `store_app` in `public`.
+Existing tables and sequences require their own grants.
 
 ### 7. Seed locations and create login accounts
 

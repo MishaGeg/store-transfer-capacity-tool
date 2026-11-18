@@ -7,7 +7,7 @@ services:
     environment:
       SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
       APP_ENV: ${APP_ENV:-development}
-      DATABASE_URL: postgresql+psycopg://store_app:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/store_transfer
+      DATABASE_URL: postgresql+psycopg://store_runtime:${docker_pgs_password1:?Set docker_pgs_password1 in .env}@db:5432/store_transfer
       RATELIMIT_STORAGE_URI: redis://redis:6379/0
     depends_on:
       db:
@@ -21,13 +21,27 @@ services:
       retries: 3
       start_period: 20s
 
+  migrate:
+    profiles: [ "tools" ]
+    build: .
+    entrypoint: [ "python", "-m", "flask", "--app", "app", "db" ]
+    command: [ "upgrade" ]
+    environment:
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
+      DATABASE_URL: postgresql+psycopg://store_app@db:5432/store_transfer
+      PGPASSWORD: ${docker_pgs_password:?Set docker_pgs_password in .env}
+      RATELIMIT_STORAGE_URI: memory://
+    depends_on:
+      db:
+        condition: service_healthy
+
   db:
     restart: unless-stopped
     image: postgres:18.7-bookworm
     environment:
       POSTGRES_DB: store_transfer
       POSTGRES_USER: store_app
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_PASSWORD: ${docker_pgs_password:?Set docker_pgs_password in .env}
     volumes:
       - postgres_data:/var/lib/postgresql
     healthcheck:
