@@ -51,6 +51,12 @@ def unauthorized():
         return redirect("/login")
     return jsonify({"error": "გთხოვთ შეხვიდეთ სისტემაში"}), 401
 
+@app.after_request
+def add_security_headers(response):
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
+
 @app.errorhandler(413)
 def too_large(error):
     return jsonify({"error": "ფაილის ზომა აჭარბებს ლიმიტს"}), 413

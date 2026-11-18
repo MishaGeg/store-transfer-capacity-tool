@@ -393,6 +393,11 @@
             <h2>მაღაზიების ტევადობები</h2>
         </div>
 
+        <div id="loadError" role="alert" hidden>
+            <p class="error-msg" id="loadErrorMessage"></p>
+            <button type="button" class="action-btn" id="retryBtn">ხელახლა ცდა</button>
+        </div>
+
         <div id="storesContainer" class="stores-grid">
             <div class="loading">იტვირთება მონაცემები...</div>
         </div>
@@ -473,10 +478,27 @@
         }
 
         async function fetchCapacities() {
+            const data = await apiFetch('/capacities');
+            if (!Array.isArray(data)) {
+                throw new Error('Server returned an invalid response.');
+            }
+            return data;
+        }
+
+        async function loadCapacities(errorMessage = 'ტევადობების ჩატვირთვა ვერ მოხერხდა. სცადეთ ხელახლა.') {
+            const retryBtn = document.getElementById('retryBtn');
+            retryBtn.disabled = true;
             try {
-                return await apiFetch('/capacities');
+                const data = await fetchCapacities();
+                renderStores(data);
+                capacitiesData = data;
+                document.getElementById('loadError').hidden = true;
             } catch (err) {
-                return [];
+                document.querySelector('#storesContainer .loading')?.remove();
+                document.getElementById('loadErrorMessage').textContent = errorMessage;
+                document.getElementById('loadError').hidden = false;
+            } finally {
+                retryBtn.disabled = false;
             }
         }
 
@@ -590,9 +612,7 @@
                 );
 
                 closeModal();
-                const updated = await fetchCapacities();
-                capacitiesData = updated;
-                renderStores(updated);
+                await loadCapacities('ტევადობა შენახულია, მაგრამ სიის განახლება ვერ მოხერხდა. ნაჩვენები მონაცემები შეიძლება მოძველებული იყოს. სცადეთ ხელახლა.');
             } catch (err) {
                 errorMsg.textContent = err.message || 'Network error. Try again.';
             }
@@ -602,15 +622,12 @@
         document.getElementById('closeBtn').addEventListener('click', closeModal);
         document.getElementById('cancelBtn').addEventListener('click', closeModal);
         document.getElementById('saveBtn').addEventListener('click', saveCapacity);
+        document.getElementById('retryBtn').addEventListener('click', () => loadCapacities());
         document.getElementById('capacityField').addEventListener('input', () => {
             document.getElementById('errorMsg').textContent = '';
         });
 
-        (async () => {
-            const data = await fetchCapacities();
-            capacitiesData = data;
-            renderStores(data);
-        })();
+        loadCapacities();
     </script>
 
 </body>
