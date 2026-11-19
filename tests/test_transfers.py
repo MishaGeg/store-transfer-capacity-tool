@@ -1,4 +1,6 @@
 from models import Store, db, PlannedTransfer
+from datetime import datetime, timedelta
+import transfers
 import pytest
 
 def test_create_transfer_empty_list(logged_in_client):
@@ -107,6 +109,47 @@ def test_delete_unknown_transfer_returns_not_found(logged_in_client):
 
     assert response.status_code == 404
     assert "error" in response.get_json()
+
+
+def test_view_transfers_only_returns_recent_plans(logged_in_client, monkeypatch):
+    now = datetime(2026, 11, 19, 12, 0, 0)
+
+    class FrozenDatetime(datetime):
+        @classmethod
+        def now(cls):
+            return now
+
+    monkeypatch.setattr(transfers, "datetime", FrozenDatetime)
+    source = Store(name="source", type="store")
+    destination = Store(name="destination", type="store")
+    db.session.add_all([source, destination])
+    db.session.flush()
+    cutoff = now - timedelta(days=5)
+    plans = [
+        PlannedTransfer(
+            from_store_id=source.id,
+            to_store_id=destination.id,
+            brand="ECCO",
+            segment="ADULTS",
+            quantity=1,
+            submitted_at=submitted_at,
+        )
+        for submitted_at in [
+            cutoff - timedelta(seconds=1),
+            cutoff,
+            cutoff + timedelta(seconds=1),
+            now,
+        ]
+    ]
+    db.session.add_all(plans)
+    db.session.commit()
+
+    response = logged_in_client.get("/view-transfers")
+
+    assert response.status_code == 200
+    assert {row["id"] for row in response.get_json()} == {plans[2].id, plans[3].id}
+    assert PlannedTransfer.query.count() == 4
+    assert len(logged_in_client.get("/transfers").get_json()) == 4
 
 
 @pytest.mark.parametrize("brand", [None, [], {}, 123, True])

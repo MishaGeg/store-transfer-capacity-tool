@@ -270,6 +270,7 @@ def public_transfers():
 @login_required
 def view_transfers():
 
+    cutoff = datetime.now() - timedelta(days=5)
     FromStore = aliased(Store)
     ToStore = aliased(Store)
     transfers = [
@@ -287,6 +288,7 @@ def view_transfers():
         for s, f, t in db.session.query(PlannedTransfer, FromStore, ToStore)
         .join(FromStore, PlannedTransfer.from_store_id == FromStore.id)
         .join(ToStore, PlannedTransfer.to_store_id == ToStore.id)
+        .filter(PlannedTransfer.submitted_at > cutoff)
         .all()
     ]
     return jsonify(transfers)
