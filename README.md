@@ -167,6 +167,20 @@ Existing tables and sequences require their own grants.
 
 ### 7. Seed locations and create login accounts
 
+For Docker, after applying migrations, run these from the project directory:
+
+```powershell
+docker compose run --rm --entrypoint python migrate seed.py
+docker compose run --rm --entrypoint python migrate -m flask --app app auth create-user misha --role supply_chain
+```
+
+These commands use the database configured in the `migrate` service. Seeding a
+fresh database creates 25 stores and 2 warehouses. The account command prompts
+for a password and confirmation. To create a viewing account, use a different
+username and `--role store_manager`.
+
+For a local Python setup, start by running:
+
 ```powershell
 python seed.py
 ```
@@ -184,7 +198,12 @@ python -m flask --app app auth create-user anna --role store_manager
 
 Each command prompts for a password and confirmation, displaying asterisks
 while typing. Passwords are stored as hashes. Existing usernames are rejected.
-To reset an existing account's password without changing its role:
+To reset an existing account's password without changing its role, use the
+command for your setup.
+
+```powershell
+docker compose run --rm --entrypoint python migrate -m flask --app app auth reset-password anna
+```
 
 ```powershell
 python -m flask --app app auth reset-password anna
@@ -203,6 +222,59 @@ Open [http://127.0.0.1:5000/login](http://127.0.0.1:5000/login) and sign in as
 `misha` with the password you entered during account creation. This command starts the
 local development server. The transfers page also needs access to its React,
 Babel, and styling/font CDNs.
+
+## Docker Database Backup and Restore
+
+Run these commands in PowerShell from the project directory with the `db`
+service running. This example backs up `store_transfer`. For a practice run,
+set `$sourceDb` to a disposable database instead. Keep the archive outside the
+repository because it contains application data, including password hashes.
+
+```powershell
+$sourceDb = 'store_transfer'
+$dumpName = "project1-$([guid]::NewGuid()).dump"
+$containerDump = "/tmp/$dumpName"
+$backupDir = Join-Path $env:USERPROFILE '.codex\backups\Project1'
+$backupFile = Join-Path $backupDir $dumpName
+
+docker compose exec -T db pg_dump -U store_app -Fc -f $containerDump $sourceDb
+if ($LASTEXITCODE -ne 0) { throw 'Database dump failed.' }
+
+New-Item -ItemType Directory -Force -Path $backupDir | Out-Null
+docker compose cp "db:${containerDump}" $backupFile
+if ($LASTEXITCODE -ne 0) { throw 'Backup copy failed.' }
+
+$containerHash = (docker compose exec -T db sha256sum $containerDump) -split '\s+' |
+    Select-Object -First 1
+if ($LASTEXITCODE -ne 0) { throw 'Could not hash the container archive.' }
+if ((Get-FileHash -LiteralPath $backupFile -Algorithm SHA256).Hash -ne $containerHash) {
+    throw 'Backup hashes do not match.'
+}
+```
+
+To test recovery, copy the saved Windows archive into the container and restore
+it into a new database on the same PostgreSQL server. In a new PowerShell window,
+set `$backupFile` to the full path of the saved archive first.
+
+```powershell
+$restoreDb = 'store_transfer_restore_check'
+$restoreDump = "/tmp/project1-restore-$([guid]::NewGuid()).dump"
+
+docker compose exec -T db createdb -U store_app $restoreDb
+if ($LASTEXITCODE -ne 0) { throw 'Could not create an empty restore database.' }
+
+docker compose cp $backupFile "db:${restoreDump}"
+if ($LASTEXITCODE -ne 0) { throw 'Could not copy the backup into the container.' }
+
+docker compose exec -T db pg_restore -U store_app --exit-on-error --single-transaction -d $restoreDb $restoreDump
+if ($LASTEXITCODE -ne 0) { throw 'Database restore failed.' }
+
+docker compose exec -T db psql -U store_app -d $restoreDb -c "SELECT type, COUNT(*) FROM stores GROUP BY type ORDER BY type;" -c "SELECT username, role FROM users ORDER BY username;"
+```
+
+Compare the restored location counts and accounts with the expected values for
+that backup. For the seed data in this repo, the expected counts are 25 stores
+and 2 warehouses.
 
 ## Using the Application
 
@@ -228,7 +300,8 @@ submit a replacement. Drag store headers or row labels to reorder the grid;
 the order is saved in the browser's local storage.
 
 The viewing page can filter incoming transfers by destination store. Both
-the page and its API require login; the API returns all stored transfers.
+the page and its API require login. The viewing page and the management grid
+show transfers submitted within the last five days.
 The filter is a display convenience, not a restriction to one manager's store.
 Supply-chain users see management navigation; store managers see viewing and logout only.
 
@@ -257,8 +330,9 @@ Available space = configured group capacity
 ```
 
 Slippers do not count toward capacity. Outbound plans are not subtracted from
-current stock. Plans stop reserving space after five days but remain in the
-transfer lists until deleted. Negative available space indicates a shortfall.
+current stock. At five days, plans stop reserving space and disappear from both
+transfer lists. Their records remain in the database. Negative available space
+indicates a shortfall.
 
 ### Shared capacity groups
 
@@ -356,7 +430,7 @@ for Excel uploads, which use multipart form data.
 | POST | `/logout` | End the login session |
 | GET | `/stores` | List stores and warehouses |
 | GET | `/transfer-options?brand=ECCO&segment=ADULTS` | Get eligible locations and destination free space |
-| GET | `/transfers` | List saved planned transfers |
+| GET | `/transfers` | List planned transfers from the last five days |
 | POST | `/transfers` | Submit a batch of planned transfers |
 | DELETE | `/transfers/<id>` | Permanently delete a planned transfer |
 | GET | `/view-transfers` | Authenticated read-only list of transfers with location names |

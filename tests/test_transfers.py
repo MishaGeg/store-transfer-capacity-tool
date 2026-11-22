@@ -111,7 +111,8 @@ def test_delete_unknown_transfer_returns_not_found(logged_in_client):
     assert "error" in response.get_json()
 
 
-def test_view_transfers_only_returns_recent_plans(logged_in_client, monkeypatch):
+@pytest.mark.parametrize("url", ["/transfers", "/view-transfers"])
+def test_transfer_lists_only_return_recent_plans(logged_in_client, monkeypatch, url):
     now = datetime(2026, 11, 19, 12, 0, 0)
 
     class FrozenDatetime(datetime):
@@ -144,12 +145,11 @@ def test_view_transfers_only_returns_recent_plans(logged_in_client, monkeypatch)
     db.session.add_all(plans)
     db.session.commit()
 
-    response = logged_in_client.get("/view-transfers")
+    response = logged_in_client.get(url)
 
     assert response.status_code == 200
     assert {row["id"] for row in response.get_json()} == {plans[2].id, plans[3].id}
     assert PlannedTransfer.query.count() == 4
-    assert len(logged_in_client.get("/transfers").get_json()) == 4
 
 
 @pytest.mark.parametrize("brand", [None, [], {}, 123, True])

@@ -604,10 +604,12 @@
         const {
             useEffect,
             useMemo,
+            useRef,
             useState
         } = React;
 
         const BRANDS_BY_SEGMENT = {{ brands_by_segment | tojson }};
+        const EMPTY_TRANSFER_OPTIONS = { sources: [], destinations: [] };
 
 
 
@@ -1013,8 +1015,8 @@
             const [transfers, setTransfers] =
                 useState([]);
 
-            const [transferOptions, setTransferOptions] =
-                useState({ sources: [], destinations: [] });
+            const [optionsResult, setOptionsResult] = useState(null);
+            const optionsRequest = useRef(null);
 
 
 
@@ -1026,6 +1028,12 @@
 
             const [selectedSegment, setSelectedSegment] =
                 useState("ADULTS");
+
+            const currentOptionsResult =
+                optionsResult?.brand === selectedBrand && optionsResult.segment === selectedSegment
+                    ? optionsResult
+                    : null;
+            const transferOptions = currentOptionsResult?.data ?? EMPTY_TRANSFER_OPTIONS;
 
             const [draggedStoreId, setDraggedStoreId] =
                 useState(null);
@@ -1091,23 +1099,41 @@
             }, []);
 
             useEffect(() => {
+                optionsRequest.current = selectedBrand
+                    ? { brand: selectedBrand, segment: selectedSegment }
+                    : null;
                 loadTransferOptions();
+                return () => {
+                    optionsRequest.current = null;
+                };
             }, [selectedBrand, selectedSegment]);
 
 
             async function loadTransferOptions() {
-                if (!selectedBrand) {
-                    setTransferOptions({ sources: [], destinations: [] });
+                const selection = optionsRequest.current;
+                if (!selection) {
                     return;
                 }
 
+                const { brand, segment } = selection;
+                const request = { brand, segment };
+                optionsRequest.current = request;
+                setOptionsResult({ ...request, status: "loading" });
+
                 try {
                     const data = await apiFetch(
-                        `/transfer-options?brand=${encodeURIComponent(selectedBrand)}&segment=${selectedSegment}`
+                        `/transfer-options?brand=${encodeURIComponent(brand)}&segment=${encodeURIComponent(segment)}`
                     );
-                    setTransferOptions(data);
+                    if (!Array.isArray(data?.sources) || !Array.isArray(data?.destinations)) {
+                        throw new Error("Invalid transfer options response.");
+                    }
+                    if (optionsRequest.current === request) {
+                        setOptionsResult({ ...request, status: "ready", data });
+                    }
                 } catch (_) {
-                    setTransferOptions({ sources: [], destinations: [] });
+                    if (optionsRequest.current === request) {
+                        setOptionsResult({ ...request, status: "error" });
+                    }
                 }
             }
 
@@ -2613,7 +2639,7 @@
                                         !hasDrafts ||
                                         hasDraftErrors ||
                                         submitting ||
-                                        !selectedBrand
+                                        currentOptionsResult?.status !== "ready"
                                     }
 
                                     onClick={
@@ -2715,6 +2741,27 @@
                                 No brand data available.
                             </div>
 
+                        </div>
+
+                    ) : currentOptionsResult?.status === "error" ? (
+
+                        <div className="matrix-card">
+                            <div className="empty-state">
+                                <p className="status error" role="alert">
+                                    ტრანსფერისთვის მაღაზიების ჩატვირთვა ვერ მოხერხდა.
+                                </p>
+                                <button type="button" className="action-btn" onClick={loadTransferOptions}>
+                                    ხელახლა ცდა
+                                </button>
+                            </div>
+                        </div>
+
+                    ) : currentOptionsResult?.status !== "ready" ? (
+
+                        <div className="matrix-card">
+                            <div className="loading" role="status">
+                                ტრანსფერისთვის მაღაზიები იტვირთება...
+                            </div>
                         </div>
 
                     ) : !visibleStores.length || !destinationStores.length ? (

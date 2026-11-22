@@ -82,6 +82,11 @@ def transfer_options():
     return jsonify({"sources": sources, "destinations": destinations})
 
 
+def recent_transfer_filter():
+    cutoff = datetime.now() - timedelta(days=5)
+    return PlannedTransfer.submitted_at > cutoff
+
+
 def available_space(capacity_row):
     """Subtract group footwear stock and recent inbound plans from capacity.
 
@@ -90,10 +95,8 @@ def available_space(capacity_row):
     """
     pairs = get_brand_age_group_pairs(capacity_row.brand)
 
-    cutoff = datetime.now() - timedelta(days=5)
-
     incoming_transfers = PlannedTransfer.query.filter(
-        PlannedTransfer.submitted_at > cutoff,
+        recent_transfer_filter(),
         PlannedTransfer.to_store_id == capacity_row.store_id,
 
         tuple_(PlannedTransfer.brand, PlannedTransfer.segment).in_(pairs),
@@ -255,7 +258,7 @@ def show_transfers():
             "from_store_id": s.from_store_id,
             "to_store_id": s.to_store_id,
         }
-        for s in PlannedTransfer.query.all()
+        for s in PlannedTransfer.query.filter(recent_transfer_filter()).all()
     ]
     return jsonify(transfers)
 
@@ -270,7 +273,6 @@ def public_transfers():
 @login_required
 def view_transfers():
 
-    cutoff = datetime.now() - timedelta(days=5)
     FromStore = aliased(Store)
     ToStore = aliased(Store)
     transfers = [
@@ -288,7 +290,7 @@ def view_transfers():
         for s, f, t in db.session.query(PlannedTransfer, FromStore, ToStore)
         .join(FromStore, PlannedTransfer.from_store_id == FromStore.id)
         .join(ToStore, PlannedTransfer.to_store_id == ToStore.id)
-        .filter(PlannedTransfer.submitted_at > cutoff)
+        .filter(recent_transfer_filter())
         .all()
     ]
     return jsonify(transfers)

@@ -232,10 +232,17 @@
                     window.location.href = '/login';
                     return;
                 }
+                if (!response.ok) {
+                    throw new Error('Could not load stock update time');
+                }
                 const data = await response.json();
-                label.textContent = data.last_updated || 'ჯერ არ ატვირთულა';
+                const timestamp = data?.last_updated;
+                if (timestamp !== null && typeof timestamp !== 'string') {
+                    throw new Error('Invalid stock update response');
+                }
+                label.textContent = timestamp === null ? 'ჯერ არ ატვირთულა' : timestamp;
             } catch (_) {
-                label.textContent = '—';
+                label.textContent = 'ბოლო განახლების დრო ვერ ჩაიტვირთა';
             }
         }
 
@@ -294,9 +301,17 @@
                     window.location.href = '/login';
                     return;
                 }
-                const data = await response.json();
+                const data = await response.json().catch(() => null);
                 if (!response.ok) {
-                    showError(data.error || 'შეცდომა');
+                    const fallback = response.status === 413
+                        ? 'ფაილის ზომა აჭარბებს ლიმიტს'
+                        : `სერვერმა ატვირთვის მოთხოვნა ვერ დაამუშავა (HTTP ${response.status}).`;
+                    showError(typeof data?.error === 'string' && data.error ? data.error : fallback);
+                    return;
+                }
+                if (!Number.isInteger(data?.processed) || !Array.isArray(data.skipped)) {
+                    showError('ატვირთვის შედეგი ვერ დადასტურდა. ხელახლა ატვირთვამდე შეამოწმეთ ბოლო განახლების დრო.');
+                    loadLastUpdate();
                     return;
                 }
                 renderResult(data);
