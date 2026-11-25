@@ -1,320 +1,31 @@
 # Store Transfer Capacity Visibility Tool
 
-A Flask application that helps supply chain specialists check destination
-capacity before planning stock transfers.
+[![Tests](https://github.com/MishaGeg/store-transfer-capacity-tool/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/MishaGeg/store-transfer-capacity-tool/actions/workflows/tests.yml)
 
-Supply chain specialists can import current stock from Excel, configure store
-capacities, and record planned transfers. A read-only page lets store
-managers view details of planned incoming transfers.
+How many more pairs of shoes can a store receive? Several brands share floor space, and recent inbound plans already reserve some of it. This Flask application combines stock from Excel with those plans and shows the remaining capacity as a supply chain specialist plans a transfer. Store managers can sign in to see what is coming. The CRM records the actual stock movement.
 
-The application supports planning, but it does not execute transfers in CRM.
+![Transfer planner with a saved transfer of 5 pairs from West Store to East Store and 85 spaces remaining at East Store](docs/transfer-planner.png)
 
-## Technology Stack
+The **5** in the West Store row is the saved plan. The green **85** above the East Store column is the space left at the destination. The screenshot uses fictional location labels and the sample workbook's stock quantities.
 
-- Python and Flask — backend application and HTTP routes
-- PostgreSQL — database for stores, stock, capacities, users, and transfers
-- Flask-SQLAlchemy — interaction with the database through Python models
-- Flask-Migrate — database schema migrations
-- Flask-Login, Flask-WTF, and Flask-Limiter — login sessions, CSRF protection, and login throttling
-- openpyxl — reading Excel stock files
-- Jinja templates, JavaScript, and React — web interface
-- Docker Compose — Caddy forwards local HTTP traffic to Gunicorn, with PostgreSQL and Redis on the internal network
+[Try the sample](#try-it-with-sample-stock) · [Run locally](docs/setup.md) · [Business rules](#business-rules) · [API reference](#api-reference) · [Tests](#testing)
 
-## Prerequisites
+## Architecture
 
-For the local Python setup, use the tools below. For the Docker setup, use
-Git, PowerShell, and Docker with Compose. Compose runs PostgreSQL inside Docker.
+In Docker Compose, Caddy listens on local port 8080 and forwards requests to Gunicorn, which serves Flask. Flask renders Jinja pages, serves the React planner's API, and reads and writes inventory data in PostgreSQL through SQLAlchemy. Redis holds login rate-limit counters. The web app uses a restricted database role. A separate migration service uses the owner role to change the schema. [Compose configuration](compose.yaml) · [Backup and restore](docs/backup-and-restore.md)
 
-- Python 3.14 (tested with 3.14.3)
-- PostgreSQL running locally, with a database login allowed to create databases
-- pgAdmin for the database-creation steps below
-- Git
-- Windows PowerShell and the Python launcher (`py`)
+## Try it with sample stock
 
-## Setup (Windows PowerShell)
+Watch a transfer from West Store reserve space for five pairs at East Store. The animation uses the same fictional location labels as the screenshot. [Watch the 9-second planner demo](docs/transfer-planner-demo.gif)
 
-### 1. Clone the repository
+Start with a fresh, disposable database and the [local setup guide](docs/setup.md). The [sample workbook](samples/stock_sample.xlsx) contains six rows for three locations. Its quantities are synthetic. Importing it replaces matching quantities in the active database.
 
-```powershell
-git clone https://github.com/MishaGeg/store-transfer-capacity-tool.git
-cd store-transfer-capacity-tool
-```
-
-Run the remaining PowerShell commands from this project folder. For Docker,
-skip the virtual environment and dependency installation in steps 2 and 3.
-Continue with the environment file in step 4 and use the Docker instructions
-in steps 5 through 8.
-
-### 2. Create and activate a virtual environment
-
-```powershell
-py -3.14 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-```
-
-If PowerShell blocks activation, use `.\.venv\Scripts\python.exe` instead of
-`python` in the commands below; activation is a convenience, not a requirement.
-
-### 3. Install dependencies
-
-```powershell
-python -m pip install -r requirements-dev.txt
-```
-
-### 4. Configure the environment
-
-For a fresh clone, copy the placeholder file:
-
-```powershell
-Copy-Item .env.example .env
-```
-
-Edit `.env` with your local values. Do not overwrite an existing `.env` when
-updating an already configured checkout.
-
-```dotenv
-SECRET_KEY=replace-with-a-long-random-secret
-DATABASE_URL=postgresql+psycopg://your_db_user:your_db_password@localhost:5432/store_transfer_capacity_tool
-```
-
-| Variable | Purpose |
-| --- | --- |
-| `SECRET_KEY` | Signs Flask session cookies |
-| `APP_ENV` | Use `development` for local HTTP. Setting `production` enables HTTPS-only session cookies; HTTPS must be configured separately. Compose defaults to `development`. |
-| `DATABASE_URL` | PostgreSQL connection URL used by SQLAlchemy |
-| `RATELIMIT_STORAGE_URI` | Login-attempt counter storage; defaults to `memory://` for direct local runs |
-| `TRUST_CADDY` | Compose sets this to `1` so Flask trusts one proxy hop for client IP and scheme. Leave it unset when running Flask directly. |
-| `docker_pgs_password` | Compose database owner's password (`store_app`), passed unchanged to PostgreSQL |
-| `docker_pgs_password1` | Compose application account's password (`store_runtime`), URL-encoded for the connection URL |
-
-Compose builds its own connection URLs from the two Docker password variables.
-On first setup, choose distinct owner and runtime passwords and create the
-runtime role in step 6. Changing `.env` alone does not change an existing
-PostgreSQL password.
-
-Docker Compose runs Redis on its internal network and sets
-`RATELIMIT_STORAGE_URI=redis://redis:6379/0` for Flask. Redis has no published host
-port and disk persistence is disabled: counters survive app restarts but reset
-when Redis restarts. The app waits for PostgreSQL and Redis healthchecks during
-startup. The app's `/ready` probe reads the `users` table and checks rate-limit
-storage. An empty, readable `users` table passes. Rebuild the app image after updating
-dependencies with `docker compose up -d --build` on an existing configured setup.
-
-For the local Python setup, use an existing PostgreSQL login for `your_db_user` and its password for
-`your_db_password`. URL-encode reserved characters in the database password
-when placing it in the connection URL.
-
-Set `SECRET_KEY` to a long random value in either setup. If Python is installed
-locally, you can generate one with:
-
-```powershell
-python -c "import secrets; print(secrets.token_hex(32))"
-```
-
-The application reads environment variables and loads local values from `.env`.
-Variables already set in the shell take precedence over `.env` values.
-Keep `.env` and real credentials out of Git.
-
-### 5. Create the application database
-
-For Docker, the `db` service creates `store_transfer` when it initializes a
-fresh volume. Continue to the Docker migration instructions in step 6.
-
-In pgAdmin, connect to the local PostgreSQL server using the same database login
-as `DATABASE_URL`. Open the Query Tool for the existing `postgres` database and
-run this statement outside a transaction:
-
-```sql
-CREATE DATABASE store_transfer_capacity_tool;
-```
-
-The login that creates the database owns it and must be able to create and
-alter its tables. For an existing setup, use its existing application database
-instead of creating another one. These instructions assume the database name
-and local server/port shown in the example URL.
-
-### 6. Apply database migrations
-
-Back up existing application data before upgrading. Migration `e4c7a2d9f610`
-deletes non-ADULTS capacity rows before removing the capacity `segment` column.
-Downgrading cannot restore those deleted rows. For a local Python install, run:
-
-```powershell
-python -m flask --app app db upgrade
-```
-
-Migration `27db4bdd6a21` assigns existing accounts the `supply_chain` role.
-New accounts require an explicit role.
-
-For Docker Compose, use the separate owner-only migration service. Check the
-current revision without changing the schema:
-
-```powershell
-docker compose run --rm --build migrate current
-```
-
-After backing up an existing database, apply migrations with:
-
-```powershell
-docker compose run --rm --build migrate
-```
-
-This temporary container connects as `store_app`; the running web app continues
-to use `store_runtime`. The `tools` profile keeps migrations out of ordinary
-`docker compose up` startup. The owner password is supplied through `PGPASSWORD`,
-so `docker_pgs_password` stays unencoded. The container is removed when finished.
-
-On a fresh Docker database, open `psql` as the owner after running migrations:
-
-```powershell
-docker compose exec db psql -U store_app -d store_transfer
-```
-
-Create the runtime role once. At the password prompt, enter the original
-runtime password whose URL-encoded form you placed in `docker_pgs_password1`.
-
-```sql
-CREATE ROLE store_runtime LOGIN;
-\password store_runtime
-```
-
-In the same session, grant access to the application tables and sequences,
-then set defaults for objects created by future owner migrations:
-
-```sql
-GRANT CONNECT ON DATABASE store_transfer TO store_runtime;
-GRANT USAGE ON SCHEMA public TO store_runtime;
-GRANT SELECT, INSERT, UPDATE, DELETE
-ON TABLE users, stores, stock_snapshots, capacities, transfers TO store_runtime;
-GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO store_runtime;
-
-ALTER DEFAULT PRIVILEGES FOR ROLE store_app IN SCHEMA public
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO store_runtime;
-
-ALTER DEFAULT PRIVILEGES FOR ROLE store_app IN SCHEMA public
-GRANT USAGE ON SEQUENCES TO store_runtime;
-```
-
-Enter `\q` to return to PowerShell.
-
-### 7. Seed locations and create login accounts
-
-For Docker, after applying migrations, run these from the project directory:
-
-```powershell
-docker compose run --rm --entrypoint python migrate seed.py
-docker compose run --rm --entrypoint python migrate -m flask --app app auth create-user misha --role supply_chain
-```
-
-These commands use the database configured in the `migrate` service. Seeding a
-fresh database creates 25 stores and 2 warehouses. The account command prompts
-for a password and confirmation. To create a viewing account, use a different
-username and `--role store_manager`.
-
-For a local Python setup, start by running:
-
-```powershell
-python seed.py
-```
-
-This adds the locations configured in `seed.py`; running it again updates
-location types without changing accounts. Stock and capacities are not seeded;
-import and configure them through the application.
-
-Create a supply-chain account and individual store-manager accounts:
-
-```powershell
-python -m flask --app app auth create-user misha --role supply_chain
-python -m flask --app app auth create-user anna --role store_manager
-```
-
-Each command prompts for a password and confirmation, displaying asterisks
-while typing. Passwords are stored as hashes. Existing usernames are rejected.
-To reset an existing account's password without changing its role, use the
-command for your setup.
-
-```powershell
-docker compose run --rm --entrypoint python migrate -m flask --app app auth reset-password anna
-```
-
-```powershell
-python -m flask --app app auth reset-password anna
-```
-
-Run account commands in a terminal with access to the configured app and
-database. A successful password reset invalidates that user's existing sessions.
-
-### 8. Start the application
-
-```powershell
-python -m flask --app app run
-```
-
-Open [http://127.0.0.1:5000/login](http://127.0.0.1:5000/login) and sign in as
-`misha` with the password you entered during account creation. This command starts the
-local development server. The planner loads React, ReactDOM, and Babel from
-unpkg. The pages load their Georgian web font from Google Fonts.
-
-For local Docker Compose, run `docker compose up -d --build` and open
-[http://127.0.0.1:8080/login](http://127.0.0.1:8080/login). Caddy listens on
-that local address and forwards requests to Gunicorn on the Compose network.
-
-## Docker Database Backup and Restore
-
-Run these commands in PowerShell from the project directory with the `db`
-service running. This example backs up `store_transfer`. For a practice run,
-set `$sourceDb` to a disposable database instead. Keep the archive outside the
-repository because it contains application data, including password hashes.
-
-```powershell
-$sourceDb = 'store_transfer'
-$dumpName = "project1-$([guid]::NewGuid()).dump"
-$containerDump = "/tmp/$dumpName"
-$backupDir = Join-Path $env:USERPROFILE '.codex\backups\Project1'
-$backupFile = Join-Path $backupDir $dumpName
-
-docker compose exec -T db pg_dump -U store_app -Fc -f $containerDump $sourceDb
-if ($LASTEXITCODE -ne 0) { throw 'Database dump failed.' }
-
-New-Item -ItemType Directory -Force -Path $backupDir | Out-Null
-docker compose cp "db:${containerDump}" $backupFile
-if ($LASTEXITCODE -ne 0) { throw 'Backup copy failed.' }
-
-$containerHash = (docker compose exec -T db sha256sum $containerDump) -split '\s+' |
-    Select-Object -First 1
-if ($LASTEXITCODE -ne 0) { throw 'Could not hash the container archive.' }
-if ((Get-FileHash -LiteralPath $backupFile -Algorithm SHA256).Hash -ne $containerHash) {
-    throw 'Backup hashes do not match.'
-}
-```
-
-To test recovery, copy the saved Windows archive into the container and restore
-it into a new database on the same PostgreSQL server. In a new PowerShell window,
-set `$backupFile` to the full path of the saved archive first.
-
-```powershell
-$restoreDb = 'store_transfer_restore_check'
-$restoreDump = "/tmp/project1-restore-$([guid]::NewGuid()).dump"
-
-docker compose exec -T db createdb -U store_app $restoreDb
-if ($LASTEXITCODE -ne 0) { throw 'Could not create an empty restore database.' }
-
-docker compose cp $backupFile "db:${restoreDump}"
-if ($LASTEXITCODE -ne 0) { throw 'Could not copy the backup into the container.' }
-
-docker compose exec -T db pg_restore -U store_app --exit-on-error --single-transaction -d $restoreDb $restoreDump
-if ($LASTEXITCODE -ne 0) { throw 'Database restore failed.' }
-
-docker compose exec -T db psql -U store_app -d $restoreDb -c "SELECT type, COUNT(*) FROM stores GROUP BY type ORDER BY type;" -c "SELECT username, role FROM users ORDER BY username;"
-```
-
-Compare the restored location counts and accounts with the expected values for
-that backup. For the seed data in this repo, the expected counts are 25 stores
-and 2 warehouses.
+1. **Import.** Sign in as a supply chain user, open the stock import page, and upload the workbook. The result should show **6 accepted rows**.
+2. **Set capacity.** In the workbook, find the retail store with **10** pairs of adult ECCO footwear (location in column E). On the capacities page, set that store's `ECCOGEOXSTUDIO` group to **100**. Select **Adults** and **ECCO** on the planner. The destination now shows **90** free.
+3. **Plan a transfer.** Find the source store with **40** pairs of adult ECCO footwear. Enter **5** where its row meets the destination column and submit. The saved cell locks and the destination now shows **85** free.
+4. **View the plan.** Sign in with a store-manager account and open the read-only transfers page (`/public-transfers`). The incoming plan shows the same source, destination, and quantity.
 
 ## Using the Application
-
-The main pages are:
 
 | Page | Path | Access |
 | --- | --- | --- |
@@ -324,13 +35,6 @@ The main pages are:
 | Edit capacities | `/edit-capacities` | Supply chain |
 | View planned transfers | `/public-transfers` | Both roles, login required, read-only |
 
-1. Sign in at `/login` as a supply chain specialist and import the current stock workbook.
-2. Configure shared capacities for the destination locations.
-3. Select an age group and brand on the transfers page, enter quantities for
-   source/destination pairs, and submit. Correct any rejected rows after partial success.
-4. Store managers sign in and open `/public-transfers` to view planned incoming transfers
-   and filter by destination store.
-
 Saved transfer cells are locked. To change a saved transfer, delete it and
 submit a replacement. Drag store headers or row labels to reorder the grid;
 the order is saved in the browser's local storage.
@@ -338,20 +42,9 @@ the order is saved in the browser's local storage.
 The viewing page can filter incoming transfers by destination store. Both
 the page and its API require login. The viewing page and the management grid
 show transfers submitted within the last five days.
+The legacy route name `/public-transfers` refers to the view shared by both signed-in roles.
 The filter is a display convenience, not a restriction to one manager's store.
 Supply-chain users see management navigation; store managers see viewing and logout only.
-
-### Try it with sample stock
-
-On a fresh local database, upload [the sample workbook](samples/stock_sample.xlsx),
-then set `ICR_Shoes East_Point`'s `ECCOGEOXSTUDIO` capacity to **100**. On the
-transfers page, select **ADULTS → ECCO** and submit **5** from `ICR_Shoes` to
-`ICR_Shoes East_Point`. Destination free space changes from **90** to **85**;
-the plan also appears on `/public-transfers`.
-
-The workbook contains six rows with synthetic quantities for three seeded
-locations. Importing it replaces matching stock quantities, so use a local
-demo database rather than operational stock data.
 
 ## Business Rules
 
@@ -396,22 +89,18 @@ that pair's group; zero or unset capacity hides the destination column. Warehous
 as sources and destinations. A warehouse without configured capacity has
 unknown available space (`null`), rather than zero.
 
-Capacity warnings are advisory; they do not block transfer submission. The
-submission API does not enforce the grid's stock/capacity eligibility rules.
+Capacity warnings are advisory. A supply chain specialist can still submit a plan when space is low.
 
 ## Excel Stock Imports
 
-Upload an `.xlsx` workbook on `/import-stock` after signing in. The importer
-reads the active worksheet and skips its first row as a header.
+Upload an `.xlsx` workbook on `/import-stock`. The importer reads the active worksheet and uses the first row as a header. The request-size limit is 5 MiB, including upload overhead.
 
-- **Columns:** A = category, D = brand, E = location name, F = age group,
-  G = quantity. Location names must match existing database records.
-- **Accepted stock:** ADULTS FOOTWEAR/SLIPPERS and KIDS FOOTWEAR. Other
-  categories and age groups are silently excluded.
-- **Updates:** duplicate rows are summed by location, brand, category, and age
-  group. Totals replace matching stock quantities; omitted records remain unchanged.
-- **Results:** the page shows accepted-row counts and skipped-row reasons.
-  The request-size limit is 5 MiB, including upload overhead.
+| Workbook columns | How the importer uses them |
+| --- | --- |
+| A (category), F (age group) | Includes adult footwear and slippers, and kids' footwear. Rows outside those combinations are filtered out before validation and do not appear in either result count. |
+| D (brand), E (location), G (quantity) | For rows within scope, a missing brand, unknown location, or missing or unconvertible quantity produces a skipped-row reason with its row number. |
+
+Accepted rows with the same location, brand, category, and age group are summed. The total replaces the matching stock quantity. Existing records omitted from the workbook keep their previous quantities.
 
 ## Design Decisions
 
@@ -444,13 +133,6 @@ remain in the database until explicitly deleted.
 | `templates/` | Jinja pages with inline styles and JavaScript |
 | `migrations/` | Alembic database schema history |
 | `tests/` | pytest tests and database fixtures |
-
-The browser calls Flask routes; SQLAlchemy reads and writes PostgreSQL. Pages
-are rendered with Jinja. The transfers page loads React and Babel from CDNs
-and has no frontend build step.
-
-Use Flask-Migrate/Alembic for application schema changes. Test fixtures use
-`create_all()`/`drop_all()` instead and therefore do not verify migrations.
 
 ## API Reference
 
@@ -495,39 +177,7 @@ Capacity values must be integers from 0 through 2,147,483,647.
 
 ## Testing
 
-Tests use pytest and a separate PostgreSQL database named `store_transfer_test`.
-In pgAdmin, connect to the same PostgreSQL server and login used by the
-application, open the Query Tool for `postgres`, and run outside a transaction:
-
-```sql
-CREATE DATABASE store_transfer_test;
-```
-
-Use an existing dedicated test database if it is already configured. The
-database user in `DATABASE_URL` must have permission to create and drop its tables.
-
-The test configuration loads `DATABASE_URL` from the environment or `.env`
-and replaces its database name with `store_transfer_test`, keeping the same
-connection credentials and server details. Configure `SECRET_KEY` before importing
-the app. Pytest forces rate-limit storage to `memory://` so resetting test
-counters leaves Redis counters intact.
-
-**Use a dedicated, disposable test database. Tests create tables before each
-test that uses the database fixture and drop them afterward. Do not store
-application data in `store_transfer_test`.**
-
-With the dependencies installed and the virtual environment activated, run
-from the project folder:
-
-```powershell
-python -m pytest
-```
-
-Tests cover authentication, transfer validation and partial success, catalog
-mapping, shared capacity calculations, location eligibility, and stock imports'
-validation/persistence helpers. A sample-workbook integration test covers upload,
-capacity configuration, transfer submission, and authenticated viewing. The pytest
-suite does not provide browser automation or migration coverage.
+The PostgreSQL suite passed 243 tests at [`07116ba`](https://github.com/MishaGeg/store-transfer-capacity-tool/commit/07116ba34bd0468d53ea59484c440d7c56310228). The sample integration test covers the workbook import, the change from 90 to 85 free spaces, and the manager's view of the saved plan. The GitHub Actions workflow upgrades an empty database to the latest migration before running pytest against a separate database. [Testing guide](docs/testing.md)
 
 ## Current Limitations
 
@@ -535,7 +185,11 @@ suite does not provide browser automation or migration coverage.
   value other than an array, the planner treats it as an empty list.
 - Unsaved drafts are separate for each brand and age group. Reloading the
   planner discards them.
+- The planner filters eligible sources and destinations by stock and configured
+  capacity. The transfer submission API validates the submitted rows without
+  applying those grid filters.
 - Transfer timestamps use server-local time (Asia/Tbilisi in Docker). The API
   sends them without a timezone offset.
+- The transfer grid uses React and ReactDOM. Babel compiles its JSX in the browser. All three scripts are version-pinned on unpkg and have integrity hashes. Loading the grid depends on the CDN. [Planner template](templates/transfers.html)
 - The UI mixes Georgian and English, including the `Adults` and `Kids` labels.
 - Deleting a plan permanently removes it from the app without an audit record.
