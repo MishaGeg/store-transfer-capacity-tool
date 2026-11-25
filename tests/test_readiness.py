@@ -3,14 +3,23 @@ from unittest.mock import MagicMock
 import pytest
 from sqlalchemy.exc import SQLAlchemyError
 
-from models import db
+from models import User, db
 
 
-def test_readiness_is_public_and_queries_database(client):
+def test_readiness_is_public_and_ready_with_no_users(client):
     response = client.get("/ready")
 
     assert response.status_code == 200
     assert response.get_json() == {"status": "ready"}
+
+
+def test_readiness_is_unavailable_when_users_table_is_missing(client):
+    User.__table__.drop(db.engine)
+
+    response = client.get("/ready")
+
+    assert response.status_code == 503
+    assert response.get_json() == {"status": "unavailable"}
 
 
 @pytest.mark.parametrize("failure_point", ["connect", "execute"])

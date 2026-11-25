@@ -94,10 +94,10 @@ def home():
 
 @app.get("/ready")
 def readiness():
-    """Report whether the database and rate-limit storage are available."""
+    """Check that the app can read users and reach rate-limit storage."""
     try:
         with db.engine.connect() as connection:
-            connection.execute(text("SELECT 1"))
+            connection.execute(text("SELECT 1 FROM users LIMIT 1"))
     except SQLAlchemyError:
         app.logger.warning("Readiness database check failed")
         return jsonify({"status": "unavailable"}), 503
