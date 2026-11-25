@@ -15,11 +15,15 @@ The application supports planning, but it does not execute transfers in CRM.
 - PostgreSQL — database for stores, stock, capacities, users, and transfers
 - Flask-SQLAlchemy — interaction with the database through Python models
 - Flask-Migrate — database schema migrations
-- Flask-Login — user authentication and login sessions
+- Flask-Login, Flask-WTF, and Flask-Limiter — login sessions, CSRF protection, and login throttling
 - openpyxl — reading Excel stock files
 - Jinja templates, JavaScript, and React — web interface
+- Docker Compose — Caddy forwards local HTTP traffic to Gunicorn, with PostgreSQL and Redis on the internal network
 
 ## Prerequisites
+
+For the local Python setup, use the tools below. For the Docker setup, use
+Git, PowerShell, and Docker with Compose. Compose runs PostgreSQL inside Docker.
 
 - Python 3.14 (tested with 3.14.3)
 - PostgreSQL running locally, with a database login allowed to create databases
@@ -36,7 +40,10 @@ git clone https://github.com/MishaGeg/store-transfer-capacity-tool.git
 cd store-transfer-capacity-tool
 ```
 
-Run the remaining PowerShell commands from this project folder.
+Run the remaining PowerShell commands from this project folder. For Docker,
+skip the virtual environment and dependency installation in steps 2 and 3.
+Continue with the environment file in step 4 and use the Docker instructions
+in steps 5 through 8.
 
 ### 2. Create and activate a virtual environment
 
@@ -76,26 +83,29 @@ DATABASE_URL=postgresql+psycopg://your_db_user:your_db_password@localhost:5432/s
 | `APP_ENV` | Use `development` for local HTTP. Setting `production` enables HTTPS-only session cookies; HTTPS must be configured separately. Compose defaults to `development`. |
 | `DATABASE_URL` | PostgreSQL connection URL used by SQLAlchemy |
 | `RATELIMIT_STORAGE_URI` | Login-attempt counter storage; defaults to `memory://` for direct local runs |
+| `TRUST_CADDY` | Compose sets this to `1` so Flask trusts one proxy hop for client IP and scheme. Leave it unset when running Flask directly. |
 | `docker_pgs_password` | Compose database owner's password (`store_app`), passed unchanged to PostgreSQL |
 | `docker_pgs_password1` | Compose application account's password (`store_runtime`), URL-encoded for the connection URL |
 
-Compose expects `store_runtime` to exist with application table and sequence
-permissions. Changing `.env` does not create roles or change existing database
-passwords. Run schema migrations separately as the database owner; the runtime
-account has no schema-management permissions.
+Compose builds its own connection URLs from the two Docker password variables.
+On first setup, choose distinct owner and runtime passwords and create the
+runtime role in step 6. Changing `.env` alone does not change an existing
+PostgreSQL password.
 
 Docker Compose runs Redis on its internal network and sets
 `RATELIMIT_STORAGE_URI=redis://redis:6379/0` for Flask. Redis has no published host
 port and disk persistence is disabled: counters survive app restarts but reset
 when Redis restarts. The app waits for PostgreSQL and Redis healthchecks during
-startup; `/ready` checks both dependencies. Rebuild the app image after updating
+startup. The app's `/ready` probe reads the `users` table and checks rate-limit
+storage. An empty, readable `users` table passes. Rebuild the app image after updating
 dependencies with `docker compose up -d --build` on an existing configured setup.
 
-Use an existing PostgreSQL login for `your_db_user` and its password for
+For the local Python setup, use an existing PostgreSQL login for `your_db_user` and its password for
 `your_db_password`. URL-encode reserved characters in the database password
 when placing it in the connection URL.
 
-Generate a random value for `SECRET_KEY` with:
+Set `SECRET_KEY` to a long random value in either setup. If Python is installed
+locally, you can generate one with:
 
 ```powershell
 python -c "import secrets; print(secrets.token_hex(32))"
@@ -106,6 +116,9 @@ Variables already set in the shell take precedence over `.env` values.
 Keep `.env` and real credentials out of Git.
 
 ### 5. Create the application database
+
+For Docker, the `db` service creates `store_transfer` when it initializes a
+fresh volume. Continue to the Docker migration instructions in step 6.
 
 In pgAdmin, connect to the local PostgreSQL server using the same database login
 as `DATABASE_URL`. Open the Query Tool for the existing `postgres` database and
@@ -122,9 +135,9 @@ and local server/port shown in the example URL.
 
 ### 6. Apply database migrations
 
-**Existing installs only:** back up application data before upgrading. Migration `e4c7a2d9f610`
+Back up existing application data before upgrading. Migration `e4c7a2d9f610`
 deletes non-ADULTS capacity rows before removing the capacity `segment` column.
-Downgrading cannot restore those deleted rows.
+Downgrading cannot restore those deleted rows. For a local Python install, run:
 
 ```powershell
 python -m flask --app app db upgrade
@@ -151,10 +164,30 @@ to use `store_runtime`. The `tools` profile keeps migrations out of ordinary
 `docker compose up` startup. The owner password is supplied through `PGPASSWORD`,
 so `docker_pgs_password` stays unencoded. The container is removed when finished.
 
-For future application tables and sequences, run these once as `store_app` in
-the target database, after creating `store_runtime`:
+On a fresh Docker database, open `psql` as the owner after running migrations:
+
+```powershell
+docker compose exec db psql -U store_app -d store_transfer
+```
+
+Create the runtime role once. At the password prompt, enter the original
+runtime password whose URL-encoded form you placed in `docker_pgs_password1`.
 
 ```sql
+CREATE ROLE store_runtime LOGIN;
+\password store_runtime
+```
+
+In the same session, grant access to the application tables and sequences,
+then set defaults for objects created by future owner migrations:
+
+```sql
+GRANT CONNECT ON DATABASE store_transfer TO store_runtime;
+GRANT USAGE ON SCHEMA public TO store_runtime;
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON TABLE users, stores, stock_snapshots, capacities, transfers TO store_runtime;
+GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO store_runtime;
+
 ALTER DEFAULT PRIVILEGES FOR ROLE store_app IN SCHEMA public
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO store_runtime;
 
@@ -162,8 +195,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE store_app IN SCHEMA public
 GRANT USAGE ON SEQUENCES TO store_runtime;
 ```
 
-These defaults apply to objects subsequently created by `store_app` in `public`.
-Existing tables and sequences require their own grants.
+Enter `\q` to return to PowerShell.
 
 ### 7. Seed locations and create login accounts
 
@@ -209,8 +241,8 @@ docker compose run --rm --entrypoint python migrate -m flask --app app auth rese
 python -m flask --app app auth reset-password anna
 ```
 
-These commands require administrator terminal access to the configured app;
-they are not website endpoints. Account passwords are not read from `.env`.
+Run account commands in a terminal with access to the configured app and
+database. A successful password reset invalidates that user's existing sessions.
 
 ### 8. Start the application
 
@@ -220,8 +252,8 @@ python -m flask --app app run
 
 Open [http://127.0.0.1:5000/login](http://127.0.0.1:5000/login) and sign in as
 `misha` with the password you entered during account creation. This command starts the
-local development server. The transfers page also needs access to its React,
-Babel, and styling/font CDNs.
+local development server. The planner loads React, ReactDOM, and Babel from
+unpkg. The pages load their Georgian web font from Google Fonts.
 
 For local Docker Compose, run `docker compose up -d --build` and open
 [http://127.0.0.1:8080/login](http://127.0.0.1:8080/login). Caddy listens on
@@ -393,7 +425,8 @@ reads the active worksheet and skips its first row as a header.
 CRM is the system of record for transaction history; this tool maintains
 working plans, so deleting a plan removes it permanently without an audit trail.
 There is no update endpoint: changing a saved transfer means deleting it and
-submitting a replacement. Older plans remain listed until explicitly deleted.
+submitting a replacement. After five days, plans disappear from both lists and
+remain in the database until explicitly deleted.
 
 ## Project Structure
 
@@ -421,15 +454,22 @@ Use Flask-Migrate/Alembic for application schema changes. Test fixtures use
 
 ## API Reference
 
-Authentication uses session cookies: sign in through `POST /login` and retain
-the cookie for protected requests. Login and logout are public. `/view-transfers`
-allows either logged-in role; the remaining data APIs require `supply_chain`.
-Forbidden management requests return HTTP 403. Successful login includes a
-role-specific `next_page` for browser navigation. Send JSON bodies except
-for Excel uploads, which use multipart form data.
+For an API client, first request `GET /login`, keep the session cookie, and read
+the token from the page's `<meta name="csrf-token">` element. Send the token in
+`X-CSRFToken` on every POST, PUT, and DELETE, including login, logout, and Excel
+uploads. Keep the session cookie updated from responses. The web pages handle
+this automatically. Send credentials and other JSON payloads as JSON and
+upload workbooks as multipart form data.
+
+Login is limited to ten requests per minute per client IP and returns HTTP 429
+when the limit is exceeded. A successful login returns a role-specific
+`next_page`. Sessions expire after one hour of inactivity. Both roles can read
+`/view-transfers`. Management endpoints require `supply_chain` and return
+HTTP 403 for a signed-in store manager.
 
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
+| GET | `/ready` | Public readiness check. Returns 200 when the app can read `users` and reach rate-limit storage, or 503 if either check fails. |
 | POST | `/login` | Sign in with `username` and `password` |
 | POST | `/logout` | End the login session |
 | GET | `/stores` | List stores and warehouses |
@@ -437,7 +477,7 @@ for Excel uploads, which use multipart form data.
 | GET | `/transfers` | List planned transfers from the last five days |
 | POST | `/transfers` | Submit a batch of planned transfers |
 | DELETE | `/transfers/<id>` | Permanently delete a planned transfer |
-| GET | `/view-transfers` | Authenticated read-only list of transfers with location names |
+| GET | `/view-transfers` | View transfers from the last five days with source and destination names |
 | GET | `/capacities` | List shared capacities by location |
 | PUT | `/capacities/<store_id>/<brand>` | Set a capacity with `{"capacity": 125}`; `brand` is a group label |
 | POST | `/import-stock` | Upload an `.xlsx` file in form field `file` |
@@ -445,9 +485,10 @@ for Excel uploads, which use multipart form data.
 | GET | `/last-stock-update` | Get the newest stock timestamp |
 
 Transfer submission expects `{"transfers": [...]}`. Each row needs `brand`,
-`segment`, `quantity`, `from_store_id`, and `to_store_id`. The response contains
-`created` and `errors`: `201` means full success, `207` partial success, and
-`400` no accepted rows or an invalid batch structure. Row-error indexes start
+`segment`, `quantity`, `from_store_id`, and `to_store_id`. For a list of rows,
+the response contains `created` and `errors`. HTTP 201 means full success,
+207 means partial success, and 400 means no rows were accepted. An invalid
+batch structure returns HTTP 400 with a single `error` field. Row-error indexes start
 at zero. Transfers require a valid catalog pair, a whole-number quantity from
 1 through 2,147,483,647, and two different existing stores with integer IDs.
 Capacity values must be integers from 0 through 2,147,483,647.
@@ -467,8 +508,9 @@ database user in `DATABASE_URL` must have permission to create and drop its tabl
 
 The test configuration loads `DATABASE_URL` from the environment or `.env`
 and replaces its database name with `store_transfer_test`, keeping the same
-connection credentials and server details. Application imports also require
-`SECRET_KEY` to be configured for authentication tests.
+connection credentials and server details. Configure `SECRET_KEY` before importing
+the app. Pytest forces rate-limit storage to `memory://` so resetting test
+counters leaves Redis counters intact.
 
 **Use a dedicated, disposable test database. Tests create tables before each
 test that uses the database fixture and drop them afterward. Do not store
@@ -489,9 +531,11 @@ suite does not provide browser automation or migration coverage.
 
 ## Current Limitations
 
-- Failed data requests can appear as empty lists rather than visible errors.
-- Unsaved drafts are kept by brand and can carry across age groups; reloading
-  discards them. Saved transfers retain their own age group.
-- Dates use server-local time without explicit timezone conversion, and the UI
-  mixes Georgian and English.
-- Deleted plans have no audit history.
+- If `/stores` or `/transfers` returns a successful response containing a JSON
+  value other than an array, the planner treats it as an empty list.
+- Unsaved drafts are separate for each brand and age group. Reloading the
+  planner discards them.
+- Transfer timestamps use server-local time (Asia/Tbilisi in Docker). The API
+  sends them without a timezone offset.
+- The UI mixes Georgian and English, including the `Adults` and `Kids` labels.
+- Deleting a plan permanently removes it from the app without an audit record.
