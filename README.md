@@ -223,6 +223,10 @@ Open [http://127.0.0.1:5000/login](http://127.0.0.1:5000/login) and sign in as
 local development server. The transfers page also needs access to its React,
 Babel, and styling/font CDNs.
 
+For local Docker Compose, run `docker compose up -d --build` and open
+[http://127.0.0.1:8080/login](http://127.0.0.1:8080/login). Caddy listens on
+that local address and forwards requests to Gunicorn on the Compose network.
+
 ## Docker Database Backup and Restore
 
 Run these commands in PowerShell from the project directory with the `db`

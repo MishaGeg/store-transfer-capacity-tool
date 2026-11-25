@@ -2,11 +2,10 @@ services:
   app:
     restart: unless-stopped
     build: .
-    ports:
-      - "127.0.0.1:8000:8000"
     environment:
       SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
       APP_ENV: ${APP_ENV:-development}
+      TRUST_CADDY: "1"
       DATABASE_URL: postgresql+psycopg://store_runtime:${docker_pgs_password1:?Set docker_pgs_password1 in .env}@db:5432/store_transfer
       RATELIMIT_STORAGE_URI: redis://redis:6379/0
     depends_on:
@@ -30,7 +29,6 @@ services:
       SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
       DATABASE_URL: postgresql+psycopg://store_app@db:5432/store_transfer
       PGPASSWORD: ${docker_pgs_password:?Set docker_pgs_password in .env}
-      RATELIMIT_STORAGE_URI: memory://
     depends_on:
       db:
         condition: service_healthy
@@ -61,6 +59,14 @@ services:
       timeout: 3s
       retries: 10
       start_period: 5s
+
+  caddy:
+    image: caddy:2.11.9-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
 
 volumes:
   postgres_data:

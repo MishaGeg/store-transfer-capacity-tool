@@ -14,9 +14,13 @@ from flask_wtf.csrf import CSRFProtect, CSRFError
 from extensions import limiter
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
+from werkzeug.middleware.proxy_fix import ProxyFix
 load_dotenv()
 
 app = Flask(__name__)
+if os.environ.get("TRUST_CADDY") == "1":
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
+
 app.config["SECRET_KEY"] = os.environ["SECRET_KEY"]
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ["DATABASE_URL"]
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"hide_parameters": True}
