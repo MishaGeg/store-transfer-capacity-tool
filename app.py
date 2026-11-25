@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, redirect, request
+from flask import Flask, jsonify, redirect, request, session
 from dotenv import load_dotenv
 import os
 from models import db, User
@@ -45,8 +45,11 @@ limiter.init_app(app)
 
 @login_manager.user_loader
 def load_user(user_id):
-    """Restore the logged-in user from the ID stored in the session."""
-    return db.session.get(User, int(user_id))
+    """Restore the user only while their password fingerprint still matches."""
+    user = db.session.get(User, int(user_id))
+    if user is None or session.get("password_fingerprint") != user.password_fingerprint():
+        return None
+    return user
 
 @login_manager.unauthorized_handler
 def unauthorized():

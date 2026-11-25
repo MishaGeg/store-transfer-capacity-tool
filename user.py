@@ -42,6 +42,7 @@ def login():
         return {"error": "Invalid username or password"}, 401
 
     login_user(user)
+    session["password_fingerprint"] = user.password_fingerprint()
     session.permanent = True
 
     if user.role == "supply_chain":
@@ -55,6 +56,7 @@ def login():
 @auth_bp.route("/logout", methods=["POST"])
 def logout():
     logout_user()
+    session.pop("password_fingerprint", None)
     return {"message": "Logout successful"}, 200
 
 

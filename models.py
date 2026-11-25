@@ -1,5 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+from hashlib import sha256
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 
@@ -19,6 +20,9 @@ class User(UserMixin, db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+    def password_fingerprint(self):
+        return sha256(self.password_hash.encode()).hexdigest()
 
     __table_args__ = (
         db.CheckConstraint(

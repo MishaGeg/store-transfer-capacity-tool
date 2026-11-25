@@ -75,6 +75,27 @@ def test_existing_account_changes_only_on_password_reset(client, command):
         assert not saved.check_password("new-password")
 
 
+def test_password_reset_requires_existing_session_to_sign_in_again(logged_in_client):
+    app = logged_in_client.application
+    with app.app_context():
+        assert logged_in_client.get("/stores").status_code == 200
+
+    result = app.test_cli_runner().invoke(
+        args=["auth", "reset-password", "testuser"],
+        input="new-password\nnew-password\n",
+    )
+    assert result.exit_code == 0
+
+    with app.app_context():
+        response = logged_in_client.get("/stores")
+    assert response.status_code == 401
+
+    login = logged_in_client.post("/login", json={"username": "testuser", "password": "new-password"})
+    assert login.status_code == 200
+    with app.app_context():
+        assert logged_in_client.get("/stores").status_code == 200
+
+
 def test_reset_unknown_account_does_not_create_it(client):
     result = client.application.test_cli_runner().invoke(
         args=["auth", "reset-password", "missing"],
