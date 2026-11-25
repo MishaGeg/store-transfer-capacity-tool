@@ -6,6 +6,7 @@ load_dotenv()
 real_url = os.environ["DATABASE_URL"]
 
 os.environ["DATABASE_URL"] = real_url.rsplit("/", 1)[0] + "/store_transfer_test"
+os.environ["RATELIMIT_STORAGE_URI"] = "memory://"
 
 import pytest
 
