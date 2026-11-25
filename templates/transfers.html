@@ -1055,7 +1055,7 @@
 
 
 
-            const [draftsByBrand, setDraftsByBrand] =
+            const [draftsBySelection, setDraftsBySelection] =
                 useState({});
 
 
@@ -1063,7 +1063,7 @@
 
 
 
-            const [errorsByBrand, setErrorsByBrand] =
+            const [errorsBySelection, setErrorsBySelection] =
                 useState({});
 
 
@@ -1292,9 +1292,11 @@
 
 
 
+            const draftKey = `${selectedSegment}:${selectedBrand}`;
+
             const currentDrafts =
-                draftsByBrand[
-                selectedBrand
+                draftsBySelection[
+                draftKey
                 ] || {};
 
 
@@ -1303,8 +1305,8 @@
 
 
             const currentErrors =
-                errorsByBrand[
-                selectedBrand
+                errorsBySelection[
+                draftKey
                 ] || {};
 
 
@@ -1475,13 +1477,13 @@
 
 
 
-                setDraftsByBrand(prev => ({
+                setDraftsBySelection(prev => ({
 
                     ...prev,
 
-                    [selectedBrand]: {
+                    [draftKey]: {
 
-                        ...(prev[selectedBrand] || {}),
+                        ...(prev[draftKey] || {}),
 
                         [key]: parsed.value
                     }
@@ -1491,10 +1493,10 @@
 
 
 
-                setErrorsByBrand(prev => {
+                setErrorsBySelection(prev => {
 
                     const next = {
-                        ...(prev[selectedBrand] || {})
+                        ...(prev[draftKey] || {})
                     };
 
 
@@ -1514,7 +1516,7 @@
 
                         ...prev,
 
-                        [selectedBrand]: next
+                        [draftKey]: next
                     };
                 });
 
@@ -1542,32 +1544,32 @@
                     );
 
 
-                setDraftsByBrand(prev => {
+                setDraftsBySelection(prev => {
 
                     const next = {
-                        ...(prev[selectedBrand] || {})
+                        ...(prev[draftKey] || {})
                     };
 
                     delete next[key];
 
                     return {
                         ...prev,
-                        [selectedBrand]: next
+                        [draftKey]: next
                     };
                 });
 
 
-                setErrorsByBrand(prev => {
+                setErrorsBySelection(prev => {
 
                     const next = {
-                        ...(prev[selectedBrand] || {})
+                        ...(prev[draftKey] || {})
                     };
 
                     delete next[key];
 
                     return {
                         ...prev,
-                        [selectedBrand]: next
+                        [draftKey]: next
                     };
                 });
             }
@@ -1938,11 +1940,11 @@
                     ).length
                 ) {
 
-                    setErrorsByBrand(prev => ({
+                    setErrorsBySelection(prev => ({
 
                         ...prev,
 
-                        [selectedBrand]:
+                        [draftKey]:
                             validationErrors
                     }));
 
@@ -2058,10 +2060,10 @@
                             )
                         );
 
-                    setDraftsByBrand(prev => {
+                    setDraftsBySelection(prev => {
 
                         const next = {
-                            ...(prev[selectedBrand] || {})
+                            ...(prev[draftKey] || {})
                         };
 
                         for (
@@ -2072,7 +2074,7 @@
 
                         return {
                             ...prev,
-                            [selectedBrand]: next
+                            [draftKey]: next
                         };
                     });
 
