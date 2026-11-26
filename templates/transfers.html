@@ -582,7 +582,7 @@
 
 <body>
 
-    <div id="root"></div>
+    <div id="root" data-brands-by-segment='{{ brands_by_segment | tojson }}'></div>
 
 
 
@@ -608,7 +608,9 @@
             useState
         } = React;
 
-        const BRANDS_BY_SEGMENT = {{ brands_by_segment | tojson }};
+        const BRANDS_BY_SEGMENT = JSON.parse(
+            document.getElementById("root").dataset.brandsBySegment
+        );
         const EMPTY_TRANSFER_OPTIONS = { sources: [], destinations: [] };
 
 
